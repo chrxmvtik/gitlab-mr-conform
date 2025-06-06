@@ -1,0 +1,87 @@
+{{- if .Values.config.create }}
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ include "gitlab-mr-conform.configMapName" . }}
+  labels:
+    {{- include "gitlab-mr-conform.labels" . | nindent 4 }}
+data:
+  config.yaml: |
+    server:
+      port: {{ .Values.config.data.server.port }}
+      host: {{ .Values.config.data.server.host | quote }}
+    gitlab:
+      # Set via environment variables:
+      # GITLAB_MR_BOT_GITLAB_TOKEN
+      # GITLAB_MR_BOT_GITLAB_SECRET_TOKEN
+      base_url: {{ .Values.config.data.gitlab.base_url | quote }}
+    rules:
+      title:
+        enabled: {{ .Values.config.data.rules.title.enabled }}
+        min_length: {{ .Values.config.data.rules.title.min_length }}
+        max_length: {{ .Values.config.data.rules.title.max_length }}
+        conventional:
+          types:
+            {{- range .Values.config.data.rules.title.conventional.types }}
+            - {{ . | quote }}
+            {{- end }}
+          scopes:
+            {{- range .Values.config.data.rules.title.conventional.scopes }}
+            - {{ . | quote }}
+            {{- end }}
+        forbidden_words:
+          {{- range .Values.config.data.rules.title.forbidden_words }}
+          - {{ . | quote }}
+          {{- end }}
+        jira:
+          keys:
+            {{- range .Values.config.data.rules.title.jira.keys }}
+            - {{ . | quote }}
+            {{- end }}
+      description:
+        enabled: {{ .Values.config.data.rules.description.enabled }}
+        required: {{ .Values.config.data.rules.description.required }}
+        min_length: {{ .Values.config.data.rules.description.min_length }}
+        require_template: {{ .Values.config.data.rules.description.require_template }}
+      branch:
+        enabled: {{ .Values.config.data.rules.branch.enabled }}
+        allowed_prefixes:
+          {{- range .Values.config.data.rules.branch.allowed_prefixes }}
+          - {{ . | quote }}
+          {{- end }}
+        forbidden_names:
+          {{- range .Values.config.data.rules.branch.forbidden_names }}
+          - {{ . | quote }}
+          {{- end }}
+      commits:
+        enabled: {{ .Values.config.data.rules.commits.enabled }}
+        max_length: {{ .Values.config.data.rules.commits.max_length }}
+        conventional:
+          types:
+            {{- range .Values.config.data.rules.commits.conventional.types }}
+            - {{ . | quote }}
+            {{- end }}
+          scopes:
+            {{- range .Values.config.data.rules.commits.conventional.scopes }}
+            - {{ . | quote }}
+            {{- end }}
+        jira:
+          keys:
+            {{- range .Values.config.data.rules.commits.jira.keys }}
+            - {{ . | quote }}
+            {{- end }}
+      approvals:
+        enabled: {{ .Values.config.data.rules.approvals.enabled }}
+        required: {{ .Values.config.data.rules.approvals.required }}
+        min_count: {{ .Values.config.data.rules.approvals.min_count }}
+      squash:
+        enabled: {{ .Values.config.data.rules.squash.enabled }}
+        enforce_branches:
+          {{- range .Values.config.data.rules.squash.enforce_branches }}
+          - {{ . | quote }}
+          {{- end }}
+        disallow_branches:
+          {{- range .Values.config.data.rules.squash.disallow_branches }}
+          - {{ . | quote }}
+          {{- end }}
+{{- end }}

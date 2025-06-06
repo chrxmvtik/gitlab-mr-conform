@@ -1,0 +1,13 @@
+apiVersion: v2
+name: gitlab-mr-conform
+description: A Helm chart for GitLab MR Conform Bot
+type: application
+version: 0.1.0
+appVersion: "main"
+keywords:
+  - gitlab
+  - bot
+  - merge-request
+home: https://github.com/chrxmvtik/gitlab-mr-conform
+maintainers:
+  - name: chrxmvtik

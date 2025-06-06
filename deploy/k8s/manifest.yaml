@@ -1,0 +1,253 @@
+---
+# Source: gitlab-mr-conform/templates/configmap.yaml
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: gitlab-mr-conform-config
+  labels:
+    helm.sh/chart: gitlab-mr-conform-0.1.0
+    app.kubernetes.io/name: gitlab-mr-conform
+    app.kubernetes.io/instance: gitlab-mr-conform
+    app.kubernetes.io/version: "main"
+    app.kubernetes.io/managed-by: Helm
+data:
+  config.yaml: |
+    server:
+      port: 8080
+      host: "0.0.0.0"
+    gitlab:
+      # Set via environment variables:
+      # GITLAB_MR_BOT_GITLAB_TOKEN
+      # GITLAB_MR_BOT_GITLAB_SECRET_TOKEN
+      base_url: "https://gitlab.mycompany.com"
+    rules:
+      title:
+        enabled: true
+        min_length: 15
+        max_length: 120
+        conventional:
+          types:
+            - "feat"
+            - "fix"
+            - "docs"
+            - "style"
+            - "refactor"
+            - "test"
+            - "chore"
+          scopes:
+            - ".*"
+        forbidden_words:
+          - "WIP"
+          - "TODO"
+          - "FIXME"
+          - "DRAFT"
+        jira:
+          keys:
+            - "PROJ"
+            - "TASK"
+            - "BUG"
+      description:
+        enabled: true
+        required: true
+        min_length: 30
+        require_template: true
+      branch:
+        enabled: true
+        allowed_prefixes:
+          - "feature/"
+          - "bugfix/"
+          - "hotfix/"
+          - "release/"
+          - "chore/"
+        forbidden_names:
+          - "master"
+          - "main"
+          - "develop"
+          - "staging"
+          - "production"
+      commits:
+        enabled: true
+        max_length: 72
+        conventional:
+          types:
+            - "feat"
+            - "fix"
+            - "docs"
+            - "style"
+            - "refactor"
+            - "test"
+            - "chore"
+          scopes:
+            - ".*"
+        jira:
+          keys:
+            - "PROJ"
+            - "TASK"
+      approvals:
+        enabled: true
+        required: true
+        min_count: 2
+      squash:
+        enabled: true
+        enforce_branches:
+          - "feature/*"
+          - "bugfix/*"
+          - "chore/*"
+        disallow_branches:
+          - "release/*"
+          - "hotfix/*"
+
+---
+# Source: gitlab-mr-conform/templates/secret.yaml
+apiVersion: v1
+kind: Secret
+metadata:
+  name: gitlab-mr-conform-secrets
+  labels:
+    helm.sh/chart: gitlab-mr-conform-0.1.0
+    app.kubernetes.io/name: gitlab-mr-conform
+    app.kubernetes.io/instance: gitlab-mr-conform
+    app.kubernetes.io/version: "main"
+    app.kubernetes.io/managed-by: Helm
+type: Opaque
+data:
+  gitlab-token: "Z2xwYXQtczNjcjN0X3Qwa2VuX2V4YW1wbGU="
+  webhook-secret: "dzNiaDBva19zM2NyM3RfZXhhbXBsZQ=="
+
+---
+# Source: gitlab-mr-conform/templates/service.yaml
+apiVersion: v1
+kind: Service
+metadata:
+  name: gitlab-mr-conform
+  labels:
+    helm.sh/chart: gitlab-mr-conform-0.1.0
+    app.kubernetes.io/name: gitlab-mr-conform
+    app.kubernetes.io/instance: gitlab-mr-conform
+    app.kubernetes.io/version: "main"
+    app.kubernetes.io/managed-by: Helm
+spec:
+  type: ClusterIP
+  ports:
+    - port: 80
+      targetPort: 8080
+      protocol: TCP
+      name: http
+  selector:
+    app.kubernetes.io/name: gitlab-mr-conform
+    app.kubernetes.io/instance: gitlab-mr-conform
+
+---
+# Source: gitlab-mr-conform/templates/deployment.yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: gitlab-mr-conform
+  labels:
+    helm.sh/chart: gitlab-mr-conform-0.1.0
+    app.kubernetes.io/name: gitlab-mr-conform
+    app.kubernetes.io/instance: gitlab-mr-conform
+    app.kubernetes.io/version: "main"
+    app.kubernetes.io/managed-by: Helm
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: gitlab-mr-conform
+      app.kubernetes.io/instance: gitlab-mr-conform
+  template:
+    metadata:
+      annotations:
+        checksum/config: "9f86d081884c7d659a2feaa0c55ad015a3bf4f1b2b0b822cd15d6c15b0f00a08"
+      labels:
+        helm.sh/chart: gitlab-mr-conform-0.1.0
+        app.kubernetes.io/name: gitlab-mr-conform
+        app.kubernetes.io/instance: gitlab-mr-conform
+        app.kubernetes.io/version: "main"
+        app.kubernetes.io/managed-by: Helm
+        environment: "production"
+    spec:
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1000
+        fsGroup: 2000
+      containers:
+        - name: bot
+          securityContext:
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop:
+              - ALL
+            readOnlyRootFilesystem: true
+          image: "ghcr.io/chrxmvtik/gitlab-mr-conform:v1.2.0"
+          imagePullPolicy: IfNotPresent
+          ports:
+            - name: http
+              containerPort: 8080
+              protocol: TCP
+          env:
+            - name: GITLAB_MR_BOT_GITLAB_TOKEN
+              valueFrom:
+                secretKeyRef:
+                  name: gitlab-mr-conform-secrets
+                  key: gitlab-token
+            - name: GITLAB_MR_BOT_GITLAB_SECRET_TOKEN
+              valueFrom:
+                secretKeyRef:
+                  name: gitlab-mr-conform-secrets
+                  key: webhook-secret
+          volumeMounts:
+            - name: config
+              mountPath: /app/config.yaml
+              subPath: config.yaml
+              readOnly: true
+            - name: tmp
+              mountPath: /tmp
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: 8080
+            initialDelaySeconds: 30
+            periodSeconds: 10
+            timeoutSeconds: 5
+            failureThreshold: 3
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: 8080
+            initialDelaySeconds: 5
+            periodSeconds: 5
+            timeoutSeconds: 3
+            failureThreshold: 3
+          resources:
+            limits:
+              cpu: 500m
+              memory: 256Mi
+            requests:
+              cpu: 250m
+              memory: 128Mi
+      volumes:
+        - name: config
+          configMap:
+            name: gitlab-mr-conform-config
+        - name: tmp
+          emptyDir: {}
+      nodeSelector:
+        kubernetes.io/os: linux
+        node-type: "worker"
+      affinity:
+        podAntiAffinity:
+          preferredDuringSchedulingIgnoredDuringExecution:
+          - weight: 100
+            podAffinityTerm:
+              labelSelector:
+                matchExpressions:
+                - key: app.kubernetes.io/name
+                  operator: In
+                  values:
+                  - gitlab-mr-conform
+              topologyKey: kubernetes.io/hostname
+      tolerations:
+        - key: "node-role.kubernetes.io/worker"
+          operator: "Exists"
+          effect: "NoSchedule"

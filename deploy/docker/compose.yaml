@@ -1,0 +1,28 @@
+version: "3.8"
+
+services:
+  gitlab-mr-bot:
+    image: ghcr.io/chrxmvtik/gitlab-mr-conform:main
+    ports:
+      - "80:8080"
+    environment:
+      - GITLAB_MR_BOT_GITLAB_TOKEN=${GITLAB_TOKEN}
+      - GITLAB_MR_BOT_GITLAB_SECRET_TOKEN=${WEBHOOK_SECRET}
+    volumes:
+      - ./config.yaml:/app/config.yaml:ro
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+      start_period: 30s
+    deploy:
+      replicas: 2
+      resources:
+        limits:
+          memory: 128M
+          cpus: "0.5"
+        reservations:
+          memory: 64M
+          cpus: "0.25"
+    restart: unless-stopped

@@ -64,5 +64,7 @@ rules:
 
   squash:
     enabled: true
-    enforce_branches: ["feature/*", "feature/*"]
+    enforce_branches:
+      - "feature/*"
+      - "fix/*"
     disallow_branches: ["release/*", "hotfix/*"]
