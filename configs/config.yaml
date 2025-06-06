@@ -1,0 +1,68 @@
+server:
+  port: 8080
+  host: "0.0.0.0"
+
+gitlab:
+  # Set via environment variables:
+  # GITLAB_MR_BOT_GITLAB_TOKEN
+  # GITLAB_MR_BOT_GITLAB_SECRET_TOKEN
+  base_url: "https://gitlab.com"
+
+rules:
+  title:
+    enabled: true
+    min_length: 10
+    max_length: 100
+    conventional:
+      types:
+        - "feat"
+        - "fix"
+        - "docs"
+        - "refactor"
+        - "release"
+      scopes:
+        - ".*"
+    forbidden_words: 
+      - "WIP"
+      - "TODO"
+      - "FIXME"
+    jira:
+      keys:
+        - PROJ
+        - JIRA
+  
+  description:
+    enabled: true
+    required: true
+    min_length: 20
+    require_template: false
+  
+  branch:
+    enabled: true
+    allowed_prefixes: ["feature/", "bugfix/", "hotfix/", "release/"]
+    forbidden_names: ["master", "main", "develop", "staging"]
+  
+  commits:
+    enabled: true
+    max_length: 72
+    conventional:
+      types:
+        - "feat"
+        - "fix"
+        - "docs"
+        - "refactor"
+        - "release"
+      scopes:
+        - ".*"
+    jira:
+      keys: []
+  
+  approvals:
+    enabled: false
+    required: false
+    min_count: 1
+
+  squash:
+    enabled: true
+    enforce_branches: ["feature/*", "feature/*"]
+    disallow_branches: ["release/*", "hotfix/*"]
