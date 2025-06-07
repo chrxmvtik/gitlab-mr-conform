@@ -99,25 +99,7 @@ rules:
 
 ## 🧾 **MR Conformity Check Summary**
 
-### ❌ 3 conformity check(s) failed:
-
----
-
-#### ❌ **Title Validation**
-
-📄 **Issue 1**: No Jira issue tag found in title: "feat: shit shittest"
-
-> 💡 **Tip**: Include a Jira tag like [ABC-123] or ABC-123  
-> **Example**:  
-> `fix(token): handle expired JWT refresh logic [SEC-456] `
-
----
-
-#### ⚠️ **Description Validation**
-
-📄 **Issue 1**: Description too short (minimum 20 characters)
-
-> 💡 **Tip**: Provide more details about the changes
+### ❌ 1 conformity check(s) failed:
 
 ---
 
@@ -136,10 +118,6 @@ rules:
   >
   > Example:
   > `feat(auth): add login retry mechanism`
-
----
-
----
 
 ## 🐳 Deployment Options
 
