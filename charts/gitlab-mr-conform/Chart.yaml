@@ -2,7 +2,7 @@ apiVersion: v2
 name: gitlab-mr-conform
 description: A Helm chart for GitLab MR Conform Bot
 type: application
-version: 0.1.0
+version: 0.0.1
 appVersion: "main"
 keywords:
   - gitlab

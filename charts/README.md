@@ -1,42 +1,32 @@
 ## Installation Instructions
 
-1. **Create the chart directory structure:**
+1. **Add helm repository:**
 
    ```bash
-   mkdir -p gitlab-mr-bot/templates
+   helm repo add gitlab-mr-conform https://chrxmvtik.github.io/gitlab-mr-conform/
    ```
 
-2. **Create all the files above in their respective locations**
-
-3. **Customize values.yaml with your secrets:**
+2. **Customize values.yaml with your secrets:**
 
    ```bash
    echo -n "your-gitlab-token" | base64
    echo -n "your-webhook-secret" | base64
    ```
 
-4. **Install the chart:**
+3. **Install the chart:**
 
    ```bash
-   # Install with default values
-   helm install gitlab-mr-bot ./gitlab-mr-bot
-
-   # Or install with custom values
-   helm install gitlab-mr-bot ./gitlab-mr-bot \
+   # Install with custom values
+   helm upgrade --install gitlab-mr-conform gitlab-mr-conform/gitlab-mr-conform --version 0.0.1 \
      --set secret.data.gitlabToken="eW91ci1naXRsYWItdG9rZW4=" \
      --set secret.data.webhookSecret="eW91ci13ZWJob29rLXNlY3JldA==" \
      --set replicaCount=3
 
    # Or customize configuration rules
-   helm install gitlab-mr-bot ./gitlab-mr-bot \
+   helm upgrade --install gitlab-mr-conform gitlab-mr-conform/gitlab-mr-conform --version 0.0.1 \
      --set config.data.rules.title.min_length=15 \
      --set config.data.rules.description.min_length=30 \
      --set config.data.gitlab.base_url="https://your-gitlab-instance.com"
-   ```
-
-5. **Upgrade the chart:**
-   ```bash
-   helm upgrade gitlab-mr-bot ./gitlab-mr-bot
    ```
 
 ## Key Features
@@ -91,7 +81,7 @@ config:
 **2. Via --set flags:**
 
 ```bash
-helm install gitlab-mr-bot ./gitlab-mr-bot \
+helm upgrade --install gitlab-mr-conform gitlab-mr-conform/gitlab-mr-conform --version 0.0.1 \
   --set config.data.rules.title.min_length=15 \
   --set config.data.rules.description.min_length=30 \
   --set config.data.gitlab.base_url="https://your-gitlab.com"
@@ -101,7 +91,7 @@ helm install gitlab-mr-bot ./gitlab-mr-bot \
 
 ```bash
 # Create custom-values.yaml with your overrides
-helm install gitlab-mr-bot ./gitlab-mr-bot -f custom-values.yaml
+helm upgrade --install gitlab-mr-conform gitlab-mr-conform/gitlab-mr-conform --version 0.0.1 -f custom-values.yaml
 ```
 
 The ConfigMap will be mounted at `/app/config.yaml` inside the container, making it available to the application.
