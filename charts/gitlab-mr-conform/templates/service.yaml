@@ -1,13 +1,13 @@
 apiVersion: v1
 kind: Service
 metadata:
-  name: { { include "gitlab-mr-conform.fullname" . } }
-  labels: { { - include "gitlab-mr-conform.labels" . | nindent 4 } }
+  name: {{ include "gitlab-mr-conform.fullname" . }}
+  labels: {{ include "gitlab-mr-conform.labels" . | nindent 4 }}
 spec:
-  type: { { .Values.service.type } }
+  type: {{ .Values.service.type }}
   ports:
-    - port: { { .Values.service.port } }
-      targetPort: { { .Values.service.targetPort } }
+    - port: {{ .Values.service.port }}
+      targetPort: {{ .Values.service.targetPort }}
       protocol: TCP
       name: http
-  selector: { { - include "gitlab-mr-conform.selectorLabels" . | nindent 4 } }
+  selector: {{ include "gitlab-mr-conform.selectorLabels" . | nindent 4 }}
