@@ -50,7 +50,7 @@ spec:
                   key: webhook-secret
           volumeMounts:
             - name: config
-              mountPath: /home/nonroot/config.yaml
+              mountPath: /home/nonroot/configs/config.yaml
               subPath: config.yaml
               readOnly: true
           {{- with .Values.livenessProbe }}
