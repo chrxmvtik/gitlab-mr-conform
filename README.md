@@ -97,46 +97,49 @@ rules:
 
 ## Example Output
 
-> **## :receipt: MR Conformity Check Summary** > **### :x: 4 conformity check(s) failed:**
->
-> ---
->
-> **#### :x: Title Validation**
-> :page_facing_up: **Issue 1**: No Jira issue tag found in title: "feat: shit shittest"
->
-> > :bulb: **Tip**: Include a Jira tag like \[ABC-123\] or ABC-123\
-> > **Example**:\
-> > `fix(token): handle expired JWT refresh logic [SEC-456]`
->
-> ---
->
-> **#### :warning: Description Validation**
-> :page_facing_up: **Issue 1**: Description too short (minimum 20 characters)
->
-> > :bulb: **Tip**: Provide more details about the changes
->
-> ---
->
-> **#### :warning: Branch Naming**
-> :page_facing_up: **Issue 1**: Branch should start with: feature/, bugfix/, hotfix/, release/
->
-> > :bulb: **Tip**: Rename branch to start with 'feature/'
->
-> ---
->
-> **#### :warning: Commit Messages**
-> :page_facing_up: **Issue 1**: 3 commit(s) have invalid Conventional Commit format:
->
-> - Merge branch 'security-300265-13-18' into '13-18-s... ([d6b32537](http://0.0.0.0:3000/gitlab-org/gitlab-shell/-/commit/d6b32537346c98c21f25a84e9bd060c6a9188fec))
-> - Update CHANGELOG and VERSION ([be84773e](http://0.0.0.0:3000/gitlab-org/gitlab-shell/-/commit/be84773e180914570ef2af88c839df3d26149153))
-> - Modify regex to prevent partial matches ([1f04c93c](http://0.0.0.0:3000/gitlab-org/gitlab-shell/-/commit/1f04c93c90cb44c805040def751d2753a7f16f29))
->   > :bulb: **Tip**: Use format:
->   >
->   > ```
->   > type(scope?): description
->   > ```
->   >
->   > Example: `feat(auth): add login retry mechanism`
+## 🧾 **MR Conformity Check Summary**
+
+### ❌ 3 conformity check(s) failed:
+
+---
+
+#### ❌ **Title Validation**
+
+📄 **Issue 1**: No Jira issue tag found in title: "feat: shit shittest"
+
+> 💡 **Tip**: Include a Jira tag like [ABC-123] or ABC-123  
+> **Example**:  
+> `fix(token): handle expired JWT refresh logic [SEC-456] `
+
+---
+
+#### ⚠️ **Description Validation**
+
+📄 **Issue 1**: Description too short (minimum 20 characters)
+
+> 💡 **Tip**: Provide more details about the changes
+
+---
+
+#### ⚠️ **Commit Messages**
+
+📄 **Issue 1**: 3 commit(s) have invalid Conventional Commit format:
+
+- Merge branch 'security-300265-13-18' into '13-18-s... ([d6b32537](http://0.0.0.0:3000/gitlab-org/gitlab-shell/-/commit/d6b32537346c98c21f25a84e9bd060c6a9188fec))
+- Update CHANGELOG and VERSION ([be84773e](http://0.0.0.0:3000/gitlab-org/gitlab-shell/-/commit/be84773e180914570ef2af88c839df3d26149153))
+- Modify regex to prevent partial matches ([1f04c93c](http://0.0.0.0:3000/gitlab-org/gitlab-shell/-/commit/1f04c93c90cb44c805040def751d2753a7f16f29))
+  > 💡 **Tip**: Use format:
+  >
+  > ```
+  > type(scope?): description
+  > ```
+  >
+  > Example:
+  > `feat(auth): add login retry mechanism`
+
+---
+
+---
 
 ## 🐳 Deployment Options
 
