@@ -12,33 +12,33 @@
 - 🌱 **Branch Rules**: Validates naming conventions (e.g., `feature/`, `bugfix/`, `hotfix/`).
 - 📦 **Squash Commit Enforcement**: Checks MR squash settings when required.
 - 👥 **Approval Rules**: Ensures required reviewers have approved the MR.
-- 🗣️ **Automated MR Discussions**: Posts a detailed comment listing all conformity violations.
 - 🛠️ **Extensible Rules Engine**: Easily add custom checks or adjust rule strictness per project.
 
-### Automated Reporting
+### 📝 Automated Reporting
 
 - Creates structured discussions on merge requests with violation details
 - Provides clear, actionable feedback for developers
 - Tracks compliance status across projects
 
-## Installation
+## 🚀 Quick Start
 
-### Prerequisites
+### 1. Installation
 
-- Go 1.21+ (for development only)
-- GitLab API access token with appropriate permissions
-
-## Configuration
-
-### Environment Variables
+**Prerequisites:** Go 1.21+ and GitLab API access token
 
 ```bash
-# GitLab Configuration
-GITLAB_MR_BOT_GITLAB_TOKEN=gitlab_token
-GITLAB_MR_BOT_GITLAB_SECRET_TOKEN=webhook_token
+# Clone and build
+make build
 ```
 
-### Rules Configuration
+### 2. Configuration
+
+Set up your environment:
+
+```bash
+export GITLAB_MR_BOT_GITLAB_TOKEN="your_gitlab_token"
+export GITLAB_MR_BOT_GITLAB_SECRET_TOKEN="your_webhook_secret"
+```
 
 Create a `config.yaml` file to define your compliance rules:
 
@@ -48,9 +48,6 @@ server:
   host: "0.0.0.0"
 
 gitlab:
-  # Set via environment variables:
-  # GITLAB_MR_BOT_GITLAB_TOKEN
-  # GITLAB_MR_BOT_GITLAB_SECRET_TOKEN
   base_url: "https://gitlab.com"
 
 rules:
@@ -59,48 +56,25 @@ rules:
     min_length: 10
     max_length: 100
     conventional:
-      types:
-        - "feat"
-        - "fix"
-        - "docs"
-        - "refactor"
-        - "release"
-      scopes:
-        - ".*"
-    forbidden_words:
-      - "WIP"
-      - "TODO"
-      - "FIXME"
+      types: ["feat", "fix", "docs", "refactor", "release"]
     jira:
-      keys:
-        - PROJ
-        - JIRA
+      keys: ["PROJ", "JIRA"]
 
   description:
     enabled: true
     required: true
     min_length: 20
-    require_template: false
 
   branch:
     enabled: true
     allowed_prefixes: ["feature/", "bugfix/", "hotfix/", "release/"]
-    forbidden_names: ["master", "main", "develop", "staging"]
+    forbidden_names: ["master", "main", "develop"]
 
   commits:
     enabled: true
     max_length: 72
     conventional:
-      types:
-        - "feat"
-        - "fix"
-        - "docs"
-        - "refactor"
-        - "release"
-      scopes:
-        - ".*"
-    jira:
-      keys: []
+      types: ["feat", "fix", "docs", "refactor", "release"]
 
   approvals:
     enabled: false
@@ -109,149 +83,126 @@ rules:
 
   squash:
     enabled: true
-    enforce_branches:
-      - "feature/*"
-      - "fix/*"
-    disallow_branches: ["release/*", "hotfix/*"]
+    enforce_branches: ["feature/*", "fix/*"]
 ```
 
-## Usage
+### 3. Setup GitLab Webhook
 
-### Webhook Integration
-
-1. Set up a GitLab webhook pointing to your service endpoint:
-
-   - URL: `https://your-domain.com/webhook`
-   - Trigger: Merge request events
-   - Secret Token: Your webhook secret
-
-2. Start the service:
-
-```bash
-make run
-# or if built:
-./bin/gitlab-mr-conform
-```
-
-## API Endpoints
-
-### Webhook Endpoint
-
-- `POST /webhook` - Receives GitLab webhook events
-
-### Status Endpoints
-
-- `GET /health` - Health check endpoint
-- `GET /status` - Service status and statistics
+1. Navigate to your GitLab project → **Settings** → **Webhooks**
+2. Add webhook:
+   - **URL:** `https://your-domain.com/webhook`
+   - **Trigger:** Merge request events
+   - **Secret Token:** Your webhook secret
+3. Start the service: `make run`
 
 ## Example Output
 
-## :receipt: **MR Conformity Check Summary**
-
-### :x: 4 conformity check(s) failed:
-
----
-
-#### :x: **Title Validation**
-
-:page_facing_up: **Issue 1**: No Jira issue tag found in title: "feat: shit shittest"
-
-> :bulb: **Tip**: Include a Jira tag like \[ABC-123\] or ABC-123\
-> **Example**:\
-> `fix(token): handle expired JWT refresh logic [SEC-456]`
-
----
-
----
-
-#### :warning: **Description Validation**
-
-:page_facing_up: **Issue 1**: Description too short (minimum 20 characters)
-
-> :bulb: **Tip**: Provide more details about the changes
-
----
-
----
-
-#### :warning: **Branch Naming**
-
-:page_facing_up: **Issue 1**: Branch should start with: feature/, bugfix/, hotfix/, release/
-
-> :bulb: **Tip**: Rename branch to start with 'feature/'
-
----
-
----
-
-#### :warning: **Commit Messages**
-
-:page_facing_up: **Issue 1**: 3 commit(s) have invalid Conventional Commit format:
-
-- Merge branch 'security-300265-13-18' into '13-18-s... ([d6b32537](http://0.0.0.0:3000/gitlab-org/gitlab-shell/-/commit/d6b32537346c98c21f25a84e9bd060c6a9188fec))
-- Update CHANGELOG and VERSION ([be84773e](http://0.0.0.0:3000/gitlab-org/gitlab-shell/-/commit/be84773e180914570ef2af88c839df3d26149153))
-- Modify regex to prevent partial matches ([1f04c93c](http://0.0.0.0:3000/gitlab-org/gitlab-shell/-/commit/1f04c93c90cb44c805040def751d2753a7f16f29))
-
-> :bulb: **Tip**: Use format:
+> **## :receipt: MR Conformity Check Summary** > **### :x: 4 conformity check(s) failed:**
 >
-> ```
-> type(scope?): description
-> ```
+> ---
 >
-> Example: `feat(auth): add login retry mechanism`
+> **#### :x: Title Validation**
+> :page_facing_up: **Issue 1**: No Jira issue tag found in title: "feat: shit shittest"
+>
+> > :bulb: **Tip**: Include a Jira tag like \[ABC-123\] or ABC-123\
+> > **Example**:\
+> > `fix(token): handle expired JWT refresh logic [SEC-456]`
+>
+> ---
+>
+> **#### :warning: Description Validation**
+> :page_facing_up: **Issue 1**: Description too short (minimum 20 characters)
+>
+> > :bulb: **Tip**: Provide more details about the changes
+>
+> ---
+>
+> **#### :warning: Branch Naming**
+> :page_facing_up: **Issue 1**: Branch should start with: feature/, bugfix/, hotfix/, release/
+>
+> > :bulb: **Tip**: Rename branch to start with 'feature/'
+>
+> ---
+>
+> **#### :warning: Commit Messages**
+> :page_facing_up: **Issue 1**: 3 commit(s) have invalid Conventional Commit format:
+>
+> - Merge branch 'security-300265-13-18' into '13-18-s... ([d6b32537](http://0.0.0.0:3000/gitlab-org/gitlab-shell/-/commit/d6b32537346c98c21f25a84e9bd060c6a9188fec))
+> - Update CHANGELOG and VERSION ([be84773e](http://0.0.0.0:3000/gitlab-org/gitlab-shell/-/commit/be84773e180914570ef2af88c839df3d26149153))
+> - Modify regex to prevent partial matches ([1f04c93c](http://0.0.0.0:3000/gitlab-org/gitlab-shell/-/commit/1f04c93c90cb44c805040def751d2753a7f16f29))
+>   > :bulb: **Tip**: Use format:
+>   >
+>   > ```
+>   > type(scope?): description
+>   > ```
+>   >
+>   > Example: `feat(auth): add login retry mechanism`
 
----
-
----
-
-## Development
-
-### Running Tests
-
-```bash
-# Install packages
-make dev-setup
-
-# Run all tests
-make test
-
-# Run application
-make run
-```
-
-## Deployment
+## 🐳 Deployment Options
 
 ### Docker
 
-#### Run Container
-
 ```bash
-	docker run -p 8080:8080 \
-		-e GITLAB_MR_BOT_GITLAB_TOKEN=$(GITLAB_MR_BOT_GITLAB_TOKEN) \
-		-e GITLAB_MR_BOT_GITLAB_SECRET_TOKEN=$(GITLAB_MR_BOT_GITLAB_SECRET_TOKEN) \
-		$(APP_NAME):$(VERSION)
+docker run -p 8080:8080 \
+  -e GITLAB_MR_BOT_GITLAB_TOKEN=$GITLAB_TOKEN \
+  -e GITLAB_MR_BOT_GITLAB_SECRET_TOKEN=$WEBHOOK_SECRET \
+  ghcr.io/chrxmvtik/gitlab-mr-conform:latest
 ```
 
 ### Docker Compose
 
-Example compose file is available [here](deploy/docker/compose.yaml)
+```yaml
+version: "3.8"
+services:
+  mr-checker:
+    image: ghcr.io/chrxmvtik/gitlab-mr-conform:latest
+    ports:
+      - "8080:8080"
+    environment:
+      - GITLAB_MR_BOT_GITLAB_TOKEN=${GITLAB_TOKEN}
+      - GITLAB_MR_BOT_GITLAB_SECRET_TOKEN=${WEBHOOK_SECRET}
+    volumes:
+      - ./config.yaml:/app/config.yaml
+```
 
-### Helm Chart
+### Kubernetes/Helm
 
-Deploy to Kubernetes using Helm, see instructions [here](charts/README.md)
+Deploy using our Helm chart - see [charts/README.md](charts/README.md) for details.
 
-## Troubleshooting
+## 🔧 API Reference
 
-### Common Issues
+| Endpoint   | Method | Description                  |
+| ---------- | ------ | ---------------------------- |
+| `/webhook` | POST   | GitLab webhook receiver      |
+| `/health`  | GET    | Health check                 |
+| `/status`  | GET    | Merge request status checker |
 
-**Issue**: Webhook not receiving events
+## 🧪 Development
 
-- Check GitLab webhook configuration
-- Verify URL is accessible from GitLab
+```bash
+# Setup development environment
+make dev-setup
+
+# Run tests
+make test
+
+# Run locally
+make run
+
+# Build for production
+make build
+```
+
+## 🔍 Troubleshooting
+
+**Webhook not receiving events?**
+
+- Verify GitLab can reach your endpoint
 - Check webhook secret configuration
+- Review GitLab webhook logs
 
-**Issue**: False positive conformity violations
+**False positive violations?**
 
-- Review and adjust rules in `conformity-rules.yml`
-- Check regex patterns for title/commit validation
-- Verify branch naming conventions
+- Adjust rule strictness in `config.yaml`
+- Review regex patterns for validation
+- Test rules against existing MRs
