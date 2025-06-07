@@ -148,7 +148,10 @@ services:
 
 ### Kubernetes/Helm
 
-Deploy using our Helm chart - see [charts/README.md](charts/README.md) for details.
+Deploy using our:
+
+- Helm chart - see [charts/README.md](charts/README.md) for details.
+- Plain manifest - [manifest](deploy/k8s/manifest.yaml)
 
 ## 🔧 API Reference
 
