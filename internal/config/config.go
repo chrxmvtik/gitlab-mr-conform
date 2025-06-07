@@ -16,6 +16,7 @@ type Config struct {
 		Token       string `mapstructure:"token"`
 		BaseURL     string `mapstructure:"base_url"`
 		SecretToken string `mapstructure:"secret_token"`
+		Insecure    bool   `mapstructure:"insecure"`
 	} `mapstructure:"gitlab"`
 
 	Rules RulesConfig `mapstructure:"rules"`
@@ -90,6 +91,7 @@ func Load() (*Config, error) {
 	viper.SetDefault("server.port", 8080)
 	viper.SetDefault("server.host", "0.0.0.0")
 	viper.SetDefault("gitlab.base_url", "https://gitlab.com")
+	viper.SetDefault("gitlab.insecure", false)
 
 	if err := viper.ReadInConfig(); err != nil {
 		return nil, err

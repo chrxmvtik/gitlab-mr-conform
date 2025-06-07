@@ -11,10 +11,8 @@ data:
       port: {{ .Values.config.data.server.port }}
       host: {{ .Values.config.data.server.host | quote }}
     gitlab:
-      # Set via environment variables:
-      # GITLAB_MR_BOT_GITLAB_TOKEN
-      # GITLAB_MR_BOT_GITLAB_SECRET_TOKEN
       base_url: {{ .Values.config.data.gitlab.base_url | quote }}
+      insecure: {{ .Values.config.data.gitlab.insecure }}
     rules:
       title:
         enabled: {{ .Values.config.data.rules.title.enabled }}

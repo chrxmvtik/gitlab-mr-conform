@@ -28,7 +28,7 @@ func main() {
 	}
 
 	// Initialize GitLab client
-	gitlabClient, err := gitlab.NewClient(cfg.GitLab.Token, cfg.GitLab.BaseURL)
+	gitlabClient, err := gitlab.NewClient(cfg.GitLab.Token, cfg.GitLab.BaseURL, cfg.GitLab.Insecure)
 	if err != nil {
 		log.Fatal("Failed to create GitLab client", "error", err)
 	}

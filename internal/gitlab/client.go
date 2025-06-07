@@ -1,7 +1,9 @@
 package gitlab
 
 import (
+	"crypto/tls"
 	"fmt"
+	"net/http"
 	"strings"
 
 	gitlab "gitlab.com/gitlab-org/api/client-go"
@@ -11,10 +13,32 @@ type Client struct {
 	client *gitlab.Client
 }
 
-func NewClient(token, baseURL string) (*Client, error) {
-	client, err := gitlab.NewClient(token, gitlab.WithBaseURL(baseURL))
-	if err != nil {
-		return nil, fmt.Errorf("failed to create GitLab client: %w", err)
+func NewClient(token, baseURL string, insecure bool) (*Client, error) {
+	var client *gitlab.Client
+	var err error
+
+	if insecure {
+		// Create a custom HTTP client that skips TLS verification
+		httpClient := &http.Client{
+			Transport: &http.Transport{
+				TLSClientConfig: &tls.Config{
+					InsecureSkipVerify: true, // ⚠️ Use with caution!
+				},
+			},
+		}
+
+		client, err = gitlab.NewClient(token,
+			gitlab.WithBaseURL(baseURL),
+			gitlab.WithHTTPClient(httpClient),
+		)
+		if err != nil {
+			return nil, fmt.Errorf("failed to create GitLab client (insecure): %w", err)
+		}
+	} else {
+		client, err = gitlab.NewClient(token, gitlab.WithBaseURL(baseURL))
+		if err != nil {
+			return nil, fmt.Errorf("failed to create GitLab client: %w", err)
+		}
 	}
 
 	return &Client{client: client}, nil

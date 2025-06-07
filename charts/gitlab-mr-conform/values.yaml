@@ -133,6 +133,7 @@ config:
       # Note: GITLAB_MR_BOT_GITLAB_TOKEN and GITLAB_MR_BOT_GITLAB_SECRET_TOKEN
       # are set via environment variables from the secret
       base_url: "https://gitlab.com"
+      insecure: false # defaults to false if not specified
     rules:
       title:
         enabled: true
