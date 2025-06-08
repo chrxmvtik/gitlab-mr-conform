@@ -1,0 +1,71 @@
+# updatecli.yaml
+name: Bump application and chart version
+
+scms:
+  github:
+    kind: github
+    spec:
+      commitusingapi: true
+      branch: '{{ requiredEnv "BRANCH" }}'
+      owner: '{{ requiredEnv "OWNER" }}'
+      repository: '{{ requiredEnv "REPOSITORY" }}'
+      token: '{{ requiredEnv "GITHUB_TOKEN" }}'
+      username: '{{ requiredEnv "GITHUB_ACTOR" }}'
+      commitmessage:
+        hidecredit: true
+      workingbranch: false
+      force: false
+
+sources:
+  version:
+    name: Obtain new version
+    kind: shell
+    spec:
+      command: echo $VERSION
+      environments:
+        - name: VERSION
+
+conditions:
+  checkFiles:
+    name: Check if files to update exists
+    kind: file
+    disablesourceinput: true
+    spec:
+      files:
+        - cmd/bot/version.go
+        - charts/gitlab-mr-conform/Chart.yaml
+targets:
+  chartVersion:
+    name: 'update chart version to {{ source "version" }} [skip ci]'
+    kind: yaml
+    scmid: github
+    sourceid: version
+    dependson:
+      - "source#version:and"
+      - "condition#checkFiles"
+    spec:
+      file: "charts/gitlab-mr-conform/Chart.yaml"
+      key: "version"
+  chartAppVersion:
+    name: 'update chart app version to {{ source "version" }} [skip ci]'
+    kind: yaml
+    scmid: github
+    sourceid: version
+    dependson:
+      - "source#version:and"
+      - "condition#checkFiles"
+    spec:
+      file: "charts/gitlab-mr-conform/Chart.yaml"
+      key: "appVersion"
+  appVersion:
+    name: 'update version to {{ source "version" }} [skip ci]'
+    kind: file
+    scmid: github
+    sourceid: version
+    dependson:
+      - "source#version:and"
+      - "condition#checkFiles"
+    spec:
+      file: cmd/bot/version.go
+      line: 3
+      content: const Version = "{{ source `version` }}"

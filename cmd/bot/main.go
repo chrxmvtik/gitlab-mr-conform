@@ -21,6 +21,8 @@ func main() {
 	// Initialize logger
 	log := logger.New()
 
+	log.Info("Starting bot", "version", Version)
+
 	// Load configuration
 	cfg, err := config.Load()
 	if err != nil {

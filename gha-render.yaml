@@ -1,0 +1,812 @@
+---
+# Source: actions-runner-controller/templates/serviceaccount.yaml
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: actions-runner-controller
+  namespace: actions-runner-system
+  labels:
+    helm.sh/chart: actions-runner-controller-0.23.7
+    app.kubernetes.io/name: actions-runner-controller
+    app.kubernetes.io/instance: actions-runner-controller
+    app.kubernetes.io/version: "0.27.6"
+    app.kubernetes.io/managed-by: Helm
+---
+# Source: actions-runner-controller/templates/manager_secrets.yaml
+apiVersion: v1
+kind: Secret
+metadata:
+  name: controller-manager
+  namespace: actions-runner-system
+  labels:
+    helm.sh/chart: actions-runner-controller-0.23.7
+    app.kubernetes.io/name: actions-runner-controller
+    app.kubernetes.io/instance: actions-runner-controller
+    app.kubernetes.io/version: "0.27.6"
+    app.kubernetes.io/managed-by: Helm
+type: Opaque
+data:
+  github_token: QUxZNEdGSkM3NTM1QlRMQlJMTUVaNkRJSVRUUUs=
+---
+# Source: actions-runner-controller/templates/auth_proxy_role.yaml
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: actions-runner-controller-proxy
+rules:
+  - apiGroups: ["authentication.k8s.io"]
+    resources:
+      - tokenreviews
+    verbs: ["create"]
+  - apiGroups: ["authorization.k8s.io"]
+    resources:
+      - subjectaccessreviews
+    verbs: ["create"]
+---
+# Source: actions-runner-controller/templates/manager_role.yaml
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  creationTimestamp: null
+  name: actions-runner-controller-manager
+rules:
+  - apiGroups:
+      - actions.summerwind.dev
+    resources:
+      - horizontalrunnerautoscalers
+    verbs:
+      - create
+      - delete
+      - get
+      - list
+      - patch
+      - update
+      - watch
+  - apiGroups:
+      - actions.summerwind.dev
+    resources:
+      - horizontalrunnerautoscalers/finalizers
+    verbs:
+      - create
+      - delete
+      - get
+      - list
+      - patch
+      - update
+      - watch
+  - apiGroups:
+      - actions.summerwind.dev
+    resources:
+      - horizontalrunnerautoscalers/status
+    verbs:
+      - get
+      - patch
+      - update
+  - apiGroups:
+      - actions.summerwind.dev
+    resources:
+      - runnerdeployments
+    verbs:
+      - create
+      - delete
+      - get
+      - list
+      - patch
+      - update
+      - watch
+  - apiGroups:
+      - actions.summerwind.dev
+    resources:
+      - runnerdeployments/finalizers
+    verbs:
+      - create
+      - delete
+      - get
+      - list
+      - patch
+      - update
+      - watch
+  - apiGroups:
+      - actions.summerwind.dev
+    resources:
+      - runnerdeployments/status
+    verbs:
+      - get
+      - patch
+      - update
+  - apiGroups:
+      - actions.summerwind.dev
+    resources:
+      - runnerreplicasets
+    verbs:
+      - create
+      - delete
+      - get
+      - list
+      - patch
+      - update
+      - watch
+  - apiGroups:
+      - actions.summerwind.dev
+    resources:
+      - runnerreplicasets/finalizers
+    verbs:
+      - create
+      - delete
+      - get
+      - list
+      - patch
+      - update
+      - watch
+  - apiGroups:
+      - actions.summerwind.dev
+    resources:
+      - runnerreplicasets/status
+    verbs:
+      - get
+      - patch
+      - update
+  - apiGroups:
+      - actions.summerwind.dev
+    resources:
+      - runners
+    verbs:
+      - create
+      - delete
+      - get
+      - list
+      - patch
+      - update
+      - watch
+  - apiGroups:
+      - actions.summerwind.dev
+    resources:
+      - runners/finalizers
+    verbs:
+      - create
+      - delete
+      - get
+      - list
+      - patch
+      - update
+      - watch
+  - apiGroups:
+      - actions.summerwind.dev
+    resources:
+      - runners/status
+    verbs:
+      - get
+      - patch
+      - update
+  - apiGroups:
+      - actions.summerwind.dev
+    resources:
+      - runnersets
+    verbs:
+      - create
+      - delete
+      - get
+      - list
+      - patch
+      - update
+      - watch
+  - apiGroups:
+      - actions.summerwind.dev
+    resources:
+      - runnersets/finalizers
+    verbs:
+      - create
+      - delete
+      - get
+      - list
+      - patch
+      - update
+      - watch
+  - apiGroups:
+      - actions.summerwind.dev
+    resources:
+      - runnersets/status
+    verbs:
+      - get
+      - patch
+      - update
+  - apiGroups:
+      - "apps"
+    resources:
+      - statefulsets
+    verbs:
+      - create
+      - delete
+      - get
+      - list
+      - patch
+      - update
+      - watch
+  - apiGroups:
+      - "apps"
+    resources:
+      - statefulsets/finalizers
+    verbs:
+      - create
+      - delete
+      - get
+      - list
+      - patch
+      - update
+      - watch
+  - apiGroups:
+      - ""
+    resources:
+      - events
+    verbs:
+      - create
+      - patch
+  - apiGroups:
+      - ""
+    resources:
+      - persistentvolumeclaims
+    verbs:
+      - delete
+      - get
+      - list
+      - patch
+      - update
+      - watch
+  - apiGroups:
+      - ""
+    resources:
+      - persistentvolumes
+    verbs:
+      - delete
+      - get
+      - list
+      - patch
+      - update
+      - watch
+  - apiGroups:
+      - coordination.k8s.io
+    resources:
+      - leases
+    verbs:
+      - create
+      - get
+      - list
+      - update
+  - apiGroups:
+      - ""
+    resources:
+      - pods
+    verbs:
+      - create
+      - delete
+      - get
+      - list
+      - patch
+      - update
+      - watch
+  - apiGroups:
+      - ""
+    resources:
+      - pods/finalizers
+    verbs:
+      - create
+      - delete
+      - get
+      - list
+      - patch
+      - update
+      - watch
+---
+# Source: actions-runner-controller/templates/manager_role_secrets.yaml
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  creationTimestamp: null
+  name: actions-runner-controller-manager-secrets
+rules:
+  - apiGroups:
+      - ""
+    resources:
+      - secrets
+    verbs:
+      - get
+      - list
+      - watch
+---
+# Source: actions-runner-controller/templates/runner_editor_role.yaml
+# permissions to do edit runners.
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: actions-runner-controller-runner-editor
+rules:
+  - apiGroups:
+      - actions.summerwind.dev
+    resources:
+      - runners
+    verbs:
+      - create
+      - delete
+      - get
+      - list
+      - patch
+      - update
+      - watch
+  - apiGroups:
+      - actions.summerwind.dev
+    resources:
+      - runners/status
+    verbs:
+      - get
+      - patch
+      - update
+---
+# Source: actions-runner-controller/templates/runner_viewer_role.yaml
+# permissions to do viewer runners.
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: actions-runner-controller-runner-viewer
+rules:
+  - apiGroups:
+      - actions.summerwind.dev
+    resources:
+      - runners
+    verbs:
+      - get
+      - list
+      - watch
+  - apiGroups:
+      - actions.summerwind.dev
+    resources:
+      - runners/status
+    verbs:
+      - get
+---
+# Source: actions-runner-controller/templates/auth_proxy_role_binding.yaml
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: actions-runner-controller-proxy
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: actions-runner-controller-proxy
+subjects:
+  - kind: ServiceAccount
+    name: actions-runner-controller
+    namespace: actions-runner-system
+---
+# Source: actions-runner-controller/templates/manager_role_binding.yaml
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: actions-runner-controller-manager
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: actions-runner-controller-manager
+subjects:
+  - kind: ServiceAccount
+    name: actions-runner-controller
+    namespace: actions-runner-system
+---
+# Source: actions-runner-controller/templates/manager_role_binding_secrets.yaml
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: actions-runner-controller-manager-secrets
+  namespace: actions-runner-system
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: actions-runner-controller-manager-secrets
+subjects:
+  - kind: ServiceAccount
+    name: actions-runner-controller
+    namespace: actions-runner-system
+---
+# Source: actions-runner-controller/templates/leader_election_role.yaml
+# permissions to do leader election.
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: actions-runner-controller-leader-election
+  namespace: actions-runner-system
+rules:
+  - apiGroups:
+      - ""
+    resources:
+      - configmaps
+    verbs:
+      - get
+      - list
+      - watch
+      - create
+      - update
+      - patch
+      - delete
+  - apiGroups:
+      - ""
+    resources:
+      - configmaps/status
+    verbs:
+      - get
+      - update
+      - patch
+  - apiGroups:
+      - ""
+    resources:
+      - events
+    verbs:
+      - create
+---
+# Source: actions-runner-controller/templates/leader_election_role_binding.yaml
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: actions-runner-controller-leader-election
+  namespace: actions-runner-system
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: actions-runner-controller-leader-election
+subjects:
+  - kind: ServiceAccount
+    name: actions-runner-controller
+    namespace: actions-runner-system
+---
+# Source: actions-runner-controller/templates/controller.metrics.service.yaml
+apiVersion: v1
+kind: Service
+metadata:
+  labels:
+    helm.sh/chart: actions-runner-controller-0.23.7
+    app.kubernetes.io/name: actions-runner-controller
+    app.kubernetes.io/instance: actions-runner-controller
+    app.kubernetes.io/version: "0.27.6"
+    app.kubernetes.io/managed-by: Helm
+  name: actions-runner-controller-metrics-service
+  namespace: actions-runner-system
+spec:
+  ports:
+    - name: metrics-port
+      port: 8443
+      targetPort: metrics-port
+  selector:
+    app.kubernetes.io/name: actions-runner-controller
+    app.kubernetes.io/instance: actions-runner-controller
+---
+# Source: actions-runner-controller/templates/webhook_service.yaml
+apiVersion: v1
+kind: Service
+metadata:
+  name: actions-runner-controller-webhook
+  namespace: actions-runner-system
+  labels:
+    helm.sh/chart: actions-runner-controller-0.23.7
+    app.kubernetes.io/name: actions-runner-controller
+    app.kubernetes.io/instance: actions-runner-controller
+    app.kubernetes.io/version: "0.27.6"
+    app.kubernetes.io/managed-by: Helm
+spec:
+  type: ClusterIP
+  ports:
+    - port: 443
+      targetPort: 9443
+      protocol: TCP
+      name: https
+  selector:
+    app.kubernetes.io/name: actions-runner-controller
+    app.kubernetes.io/instance: actions-runner-controller
+---
+# Source: actions-runner-controller/templates/deployment.yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: actions-runner-controller
+  namespace: actions-runner-system
+  labels:
+    helm.sh/chart: actions-runner-controller-0.23.7
+    app.kubernetes.io/name: actions-runner-controller
+    app.kubernetes.io/instance: actions-runner-controller
+    app.kubernetes.io/version: "0.27.6"
+    app.kubernetes.io/managed-by: Helm
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: actions-runner-controller
+      app.kubernetes.io/instance: actions-runner-controller
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: actions-runner-controller
+        app.kubernetes.io/instance: actions-runner-controller
+    spec:
+      serviceAccountName: actions-runner-controller
+      securityContext: {}
+      containers:
+        - args:
+            - "--metrics-addr=127.0.0.1:8080"
+            - "--enable-leader-election"
+            - "--port=9443"
+            - "--sync-period=1m"
+            - "--default-scale-down-delay=10m"
+            - "--docker-image=docker:dind"
+            - "--runner-image=summerwind/actions-runner:latest"
+            - "--log-format=text"
+          command:
+            - "/manager"
+          env:
+            - name: GITHUB_TOKEN
+              valueFrom:
+                secretKeyRef:
+                  key: github_token
+                  name: controller-manager
+                  optional: true
+            - name: GITHUB_APP_ID
+              valueFrom:
+                secretKeyRef:
+                  key: github_app_id
+                  name: controller-manager
+                  optional: true
+            - name: GITHUB_APP_INSTALLATION_ID
+              valueFrom:
+                secretKeyRef:
+                  key: github_app_installation_id
+                  name: controller-manager
+                  optional: true
+            - name: GITHUB_APP_PRIVATE_KEY
+              valueFrom:
+                secretKeyRef:
+                  key: github_app_private_key
+                  name: controller-manager
+                  optional: true
+            - name: GITHUB_BASICAUTH_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  key: github_basicauth_password
+                  name: controller-manager
+                  optional: true
+          image: "summerwind/actions-runner-controller:v0.27.6"
+          name: manager
+          imagePullPolicy: IfNotPresent
+          ports:
+            - containerPort: 9443
+              name: webhook-server
+              protocol: TCP
+          resources: {}
+          securityContext: {}
+          volumeMounts:
+            - mountPath: "/etc/actions-runner-controller"
+              name: secret
+              readOnly: true
+            - mountPath: /tmp
+              name: tmp
+            - mountPath: /tmp/k8s-webhook-server/serving-certs
+              name: cert
+              readOnly: true
+        - args:
+            - "--secure-listen-address=0.0.0.0:8443"
+            - "--upstream=http://127.0.0.1:8080/"
+            - "--logtostderr=true"
+            - "--v=10"
+          image: "quay.io/brancz/kube-rbac-proxy:v0.13.1"
+          name: kube-rbac-proxy
+          imagePullPolicy: IfNotPresent
+          ports:
+            - containerPort: 8443
+              name: metrics-port
+          resources: {}
+          securityContext: {}
+      terminationGracePeriodSeconds: 10
+      volumes:
+        - name: secret
+          secret:
+            secretName: controller-manager
+        - name: cert
+          secret:
+            defaultMode: 420
+            secretName: actions-runner-controller-serving-cert
+        - name: tmp
+          emptyDir: {}
+---
+# Source: actions-runner-controller/templates/ci-secret.yaml
+# This template only exists to facilitate CI testing of the chart, since
+# a secret is expected to be found in the namespace by the controller manager
+---
+# Source: actions-runner-controller/templates/certificate.yaml
+apiVersion: cert-manager.io/v1
+kind: Certificate
+metadata:
+  name: actions-runner-controller-serving-cert
+  namespace: actions-runner-system
+spec:
+  dnsNames:
+    - actions-runner-controller-webhook.actions-runner-system.svc
+    - actions-runner-controller-webhook.actions-runner-system.svc.cluster.local
+  issuerRef:
+    kind: Issuer
+    name: actions-runner-controller-selfsigned-issuer
+  secretName: actions-runner-controller-serving-cert
+---
+# Source: actions-runner-controller/templates/certificate.yaml
+# The following manifests contain a self-signed issuer CR and a certificate CR.
+# More document can be found at https://docs.cert-manager.io
+# WARNING: Targets CertManager 0.11 check https://docs.cert-manager.io/en/latest/tasks/upgrading/index.html for breaking changes
+apiVersion: cert-manager.io/v1
+kind: Issuer
+metadata:
+  name: actions-runner-controller-selfsigned-issuer
+  namespace: actions-runner-system
+spec:
+  selfSigned: {}
+---
+# Source: actions-runner-controller/templates/webhook_configs.yaml
+apiVersion: admissionregistration.k8s.io/v1
+kind: MutatingWebhookConfiguration
+metadata:
+  creationTimestamp: null
+  name: actions-runner-controller-mutating-webhook-configuration
+  annotations:
+    cert-manager.io/inject-ca-from: actions-runner-system/actions-runner-controller-serving-cert
+webhooks:
+  - admissionReviewVersions:
+      - v1beta1
+    clientConfig:
+      service:
+        name: actions-runner-controller-webhook
+        namespace: actions-runner-system
+        path: /mutate-actions-summerwind-dev-v1alpha1-runner
+    failurePolicy: Fail
+    name: mutate.runner.actions.summerwind.dev
+    rules:
+      - apiGroups:
+          - actions.summerwind.dev
+        apiVersions:
+          - v1alpha1
+        operations:
+          - CREATE
+          - UPDATE
+        resources:
+          - runners
+    sideEffects: None
+    timeoutSeconds: 10
+  - admissionReviewVersions:
+      - v1beta1
+    clientConfig:
+      service:
+        name: actions-runner-controller-webhook
+        namespace: actions-runner-system
+        path: /mutate-actions-summerwind-dev-v1alpha1-runnerdeployment
+    failurePolicy: Fail
+    name: mutate.runnerdeployment.actions.summerwind.dev
+    rules:
+      - apiGroups:
+          - actions.summerwind.dev
+        apiVersions:
+          - v1alpha1
+        operations:
+          - CREATE
+          - UPDATE
+        resources:
+          - runnerdeployments
+    sideEffects: None
+    timeoutSeconds: 10
+  - admissionReviewVersions:
+      - v1beta1
+    clientConfig:
+      service:
+        name: actions-runner-controller-webhook
+        namespace: actions-runner-system
+        path: /mutate-actions-summerwind-dev-v1alpha1-runnerreplicaset
+    failurePolicy: Fail
+    name: mutate.runnerreplicaset.actions.summerwind.dev
+    rules:
+      - apiGroups:
+          - actions.summerwind.dev
+        apiVersions:
+          - v1alpha1
+        operations:
+          - CREATE
+          - UPDATE
+        resources:
+          - runnerreplicasets
+    sideEffects: None
+    timeoutSeconds: 10
+  - admissionReviewVersions:
+      - v1beta1
+    clientConfig:
+      service:
+        name: actions-runner-controller-webhook
+        namespace: actions-runner-system
+        path: /mutate-runner-set-pod
+    failurePolicy: Fail
+    name: mutate-runner-pod.webhook.actions.summerwind.dev
+    rules:
+      - apiGroups:
+          - ""
+        apiVersions:
+          - v1
+        operations:
+          - CREATE
+        resources:
+          - pods
+    sideEffects: None
+    objectSelector:
+      matchLabels:
+        "actions-runner-controller/inject-registration-token": "true"
+    timeoutSeconds: 10
+---
+# Source: actions-runner-controller/templates/webhook_configs.yaml
+apiVersion: admissionregistration.k8s.io/v1
+kind: ValidatingWebhookConfiguration
+metadata:
+  creationTimestamp: null
+  name: actions-runner-controller-validating-webhook-configuration
+  annotations:
+    cert-manager.io/inject-ca-from: actions-runner-system/actions-runner-controller-serving-cert
+webhooks:
+  - admissionReviewVersions:
+      - v1beta1
+    clientConfig:
+      service:
+        name: actions-runner-controller-webhook
+        namespace: actions-runner-system
+        path: /validate-actions-summerwind-dev-v1alpha1-runner
+    failurePolicy: Fail
+    name: validate.runner.actions.summerwind.dev
+    rules:
+      - apiGroups:
+          - actions.summerwind.dev
+        apiVersions:
+          - v1alpha1
+        operations:
+          - CREATE
+          - UPDATE
+        resources:
+          - runners
+    sideEffects: None
+    timeoutSeconds: 10
+  - admissionReviewVersions:
+      - v1beta1
+    clientConfig:
+      service:
+        name: actions-runner-controller-webhook
+        namespace: actions-runner-system
+        path: /validate-actions-summerwind-dev-v1alpha1-runnerdeployment
+    failurePolicy: Fail
+    name: validate.runnerdeployment.actions.summerwind.dev
+    rules:
+      - apiGroups:
+          - actions.summerwind.dev
+        apiVersions:
+          - v1alpha1
+        operations:
+          - CREATE
+          - UPDATE
+        resources:
+          - runnerdeployments
+    sideEffects: None
+    timeoutSeconds: 10
+  - admissionReviewVersions:
+      - v1beta1
+    clientConfig:
+      service:
+        name: actions-runner-controller-webhook
+        namespace: actions-runner-system
+        path: /validate-actions-summerwind-dev-v1alpha1-runnerreplicaset
+    failurePolicy: Fail
+    name: validate.runnerreplicaset.actions.summerwind.dev
+    rules:
+      - apiGroups:
+          - actions.summerwind.dev
+        apiVersions:
+          - v1alpha1
+        operations:
+          - CREATE
+          - UPDATE
+        resources:
+          - runnerreplicasets
+    sideEffects: None
