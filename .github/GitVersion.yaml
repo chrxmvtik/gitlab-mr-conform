@@ -43,7 +43,8 @@ branches:
     track-merge-target: false
     track-merge-message: true
     regex: ^release$
-    source-branches: []
+    source-branches:
+      - main
     is-source-branch-for: []
     tracks-release-branches: false
     is-release-branch: true
@@ -91,8 +92,8 @@ branches:
     is-source-branch-for: []
     pre-release-weight: 30000
   unknown:
-    mode: ContinuousDeployment
-    increment: None
+    mode: ContinuousDelivery
+    increment: Patch
     prevent-increment:
       of-merged-branch: true
       when-current-commit-tagged: false
