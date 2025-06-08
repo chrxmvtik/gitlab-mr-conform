@@ -205,6 +205,8 @@ jobs:
       contents: write
     runs-on: gha-runner-scale-set
     if: startsWith(github.ref, 'refs/heads/release/')
+    needs:
+      - build
     steps:
       - name: Checkout
         uses: actions/checkout@v4
