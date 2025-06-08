@@ -203,7 +203,7 @@ jobs:
     # see: https://docs.github.com/en/actions/security-guides/automatic-token-authentication#modifying-the-permissions-for-the-github_token
     permissions:
       contents: write
-    runs-on: gha-runner-scale-set
+    runs-on: ubuntu-latest # ARM64 runners unsupported yet
     if: startsWith(github.ref, 'refs/heads/release/')
     needs:
       - build

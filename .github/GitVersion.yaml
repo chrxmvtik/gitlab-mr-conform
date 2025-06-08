@@ -37,19 +37,21 @@ branches:
   release:
     mode: ContinuousDeployment
     label: ""
-    increment: Inherit
+    increment: None
     prevent-increment:
       of-merged-branch: true
+      when-branch-merged: false
+      when-current-commit-tagged: false
     track-merge-target: false
     track-merge-message: true
-    regex: ^release$
+    regex: ^releases?[\/-](?<BranchName>.+)
     source-branches:
       - main
     is-source-branch-for: []
     tracks-release-branches: false
     is-release-branch: true
-    is-main-branch: true
-    pre-release-weight: 55000
+    is-main-branch: false
+    pre-release-weight: 30000
   feature:
     mode: ContinuousDelivery
     label: "{BranchName}"
@@ -92,17 +94,14 @@ branches:
     is-source-branch-for: []
     pre-release-weight: 30000
   unknown:
-    mode: ContinuousDelivery
     increment: Patch
     prevent-increment:
-      of-merged-branch: true
       when-current-commit-tagged: false
     regex: (?<BranchName>.+)
     source-branches:
       - main
     is-source-branch-for: []
     pre-release-weight: 30000
-    is-main-branch: false
 ignore:
   sha: []
 mode: ContinuousDelivery
