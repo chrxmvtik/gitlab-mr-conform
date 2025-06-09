@@ -171,7 +171,7 @@ func (cl *ConfigLoader) loadRepositoryConfig(projectID interface{}) (*RulesConfi
 		return nil, fmt.Errorf("failed to parse config: %w", err)
 	}
 
-	var repoConfig RulesConfig
+	var repoConfig Config
 	err = v.Unmarshal(&repoConfig)
 	if err != nil {
 		cl.logger.Warn("Failed to unmarshal config file from repository, using default config", "error", err)
@@ -179,7 +179,7 @@ func (cl *ConfigLoader) loadRepositoryConfig(projectID interface{}) (*RulesConfi
 	}
 
 	cl.logger.Info("Successfully loaded config from repository")
-	return &repoConfig, nil
+	return &repoConfig.Rules, nil
 }
 
 // selectConfig returns repository config if available, otherwise default config

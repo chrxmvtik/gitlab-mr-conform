@@ -86,6 +86,10 @@ rules:
     enforce_branches: ["feature/*", "fix/*"]
 ```
 
+> [!TIP]  
+> You can configure settings per project by adding a `.mr-conform.yaml` file to the root of the repository's default branch.  
+> To define your settings, simply include a rules object in the file.
+
 ### 3. Setup GitLab Webhook
 
 1. Navigate to your GitLab project → **Settings** → **Webhooks**
