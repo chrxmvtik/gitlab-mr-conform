@@ -1,6 +1,10 @@
 package config
 
 import (
+	"encoding/base64"
+	"fmt"
+	"gitlab-mr-conformity-bot/internal/gitlab"
+	"gitlab-mr-conformity-bot/pkg/logger"
 	"strings"
 
 	"github.com/spf13/viper"
@@ -81,6 +85,13 @@ type JiraConfig struct {
 	Keys []string `mapstructure:"keys"`
 }
 
+// ConfigLoader handles loading and merging configurations
+type ConfigLoader struct {
+	defaultConfig RulesConfig
+	gitlabClient  *gitlab.Client
+	logger        *logger.Logger
+}
+
 func Load() (*Config, error) {
 	viper.SetConfigName("config")
 	viper.SetConfigType("yaml")
@@ -113,4 +124,71 @@ func Load() (*Config, error) {
 	}
 
 	return &config, nil
+}
+
+// NewConfigLoader creates a new configuration loader
+func NewConfigLoader(defaultConfig RulesConfig, client *gitlab.Client, log *logger.Logger) *ConfigLoader {
+	return &ConfigLoader{
+		defaultConfig: defaultConfig,
+		gitlabClient:  client,
+		logger:        log,
+	}
+}
+
+// LoadConfig loads configuration for a project, trying repository config first, then falling back to default
+func (cl *ConfigLoader) LoadConfig(projectID interface{}) (RulesConfig, error) {
+	repoConfig, err := cl.loadRepositoryConfig(projectID)
+	if err != nil {
+		cl.logger.Debug("Using default configuration", "reason", err.Error())
+	}
+
+	return cl.selectConfig(repoConfig), nil
+}
+
+// loadRepositoryConfig attempts to load config from repository, returns nil if not found or invalid
+func (cl *ConfigLoader) loadRepositoryConfig(projectID interface{}) (*RulesConfig, error) {
+	// Try to get config file from repository
+	cfg, err := cl.gitlabClient.GetConfigFile(projectID)
+	if err != nil {
+		cl.logger.Debug("No config file found in repository, using default config", "error", err)
+		return nil, err
+	}
+
+	// Decode the base64 content
+	decoded, err := base64.StdEncoding.DecodeString(cfg.Content)
+	if err != nil {
+		cl.logger.Warn("Failed to decode config file from repository, using default config", "error", err)
+		return nil, fmt.Errorf("failed to decode config: %w", err)
+	}
+
+	// Create a new viper instance to avoid global state conflicts
+	v := viper.New()
+	v.SetConfigType("yaml")
+
+	err = v.ReadConfig(strings.NewReader(string(decoded)))
+	if err != nil {
+		cl.logger.Warn("Failed to parse config file from repository, using default config", "error", err)
+		return nil, fmt.Errorf("failed to parse config: %w", err)
+	}
+
+	var repoConfig RulesConfig
+	err = v.Unmarshal(&repoConfig)
+	if err != nil {
+		cl.logger.Warn("Failed to unmarshal config file from repository, using default config", "error", err)
+		return nil, fmt.Errorf("failed to unmarshal config: %w", err)
+	}
+
+	cl.logger.Info("Successfully loaded config from repository")
+	return &repoConfig, nil
+}
+
+// selectConfig returns repository config if available, otherwise default config
+func (cl *ConfigLoader) selectConfig(repoConfig *RulesConfig) RulesConfig {
+	if repoConfig != nil {
+		cl.logger.Info("Using repository configuration")
+		return *repoConfig
+	}
+
+	cl.logger.Info("Using default configuration")
+	return cl.defaultConfig
 }

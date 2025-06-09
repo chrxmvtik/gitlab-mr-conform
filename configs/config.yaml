@@ -10,7 +10,7 @@ gitlab:
 
 rules:
   title:
-    enabled: true
+    enabled: false
     min_length: 10
     max_length: 100
     conventional:
@@ -22,7 +22,7 @@ rules:
         - "release"
       scopes:
         - ".*"
-    forbidden_words: 
+    forbidden_words:
       - "WIP"
       - "TODO"
       - "FIXME"
@@ -30,20 +30,20 @@ rules:
       keys:
         - PROJ
         - JIRA
-  
+
   description:
-    enabled: true
+    enabled: false
     required: true
     min_length: 20
     require_template: false
-  
+
   branch:
-    enabled: true
+    enabled: false
     allowed_prefixes: ["feature/", "bugfix/", "hotfix/", "release/"]
     forbidden_names: ["master", "main", "develop", "staging"]
-  
+
   commits:
-    enabled: true
+    enabled: false
     max_length: 72
     conventional:
       types:
@@ -56,14 +56,14 @@ rules:
         - ".*"
     jira:
       keys: []
-  
+
   approvals:
     enabled: false
     required: false
     min_count: 1
 
   squash:
-    enabled: true
+    enabled: false
     enforce_branches:
       - "feature/*"
       - "fix/*"

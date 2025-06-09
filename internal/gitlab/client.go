@@ -64,9 +64,10 @@ func (c *Client) CreateUpdateMergeRequestDiscussion(projectID interface{}, mrID 
 	identifier := "MR Conformity Check Summary"
 
 	// List discussions
-	discussions, _, err := c.client.Discussions.ListMergeRequestDiscussions(projectID, mrID, &gitlab.ListMergeRequestDiscussionsOptions{
-		Pagination: *gitlab.Ptr("1000"),
-	})
+	discussions, err := c.getAllDiscussions(projectID, mrID)
+	if err != nil {
+		return err
+	}
 	if err != nil {
 		return fmt.Errorf("failed to list discussions: %w", err)
 	}
@@ -124,9 +125,8 @@ func (c *Client) CreateMergeRequestNote(projectID interface{}, mrID int, note st
 
 func (c *Client) SetCommitStatus(projectID interface{}, sha, state, description string) error {
 	opts := &gitlab.SetCommitStatusOptions{
-		State:       gitlab.BuildStateValue(state), //gitlab.BuildState(gitlab.BuildStateValue(state)),
+		State:       gitlab.BuildStateValue(state),
 		Description: &description,
-		//Context:     gitlab.WithContext(), //gitlab.String("mr-conformity-bot"),
 	}
 
 	_, _, err := c.client.Commits.SetCommitStatus(projectID, sha, opts)
@@ -134,4 +134,42 @@ func (c *Client) SetCommitStatus(projectID interface{}, sha, state, description 
 		return fmt.Errorf("failed to set commit status: %w", err)
 	}
 	return nil
+}
+
+func (c *Client) GetConfigFile(projectID interface{}) (*gitlab.File, error) {
+	// Check default branch
+	cP, _, err := c.client.Projects.GetProject(projectID, nil)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get repository info: %w", err)
+	}
+	cfg, _, err := c.client.RepositoryFiles.GetFile(projectID, ".mr-conform.yaml", &gitlab.GetFileOptions{
+		Ref: &cP.DefaultBranch,
+	})
+	if err != nil {
+		return nil, fmt.Errorf("failed to config file: %w", err)
+	}
+	return cfg, nil
+}
+
+func (c *Client) getAllDiscussions(projectID interface{}, mrID int) ([]*gitlab.Discussion, error) {
+	var allDiscussions []*gitlab.Discussion
+	opt := &gitlab.ListMergeRequestDiscussionsOptions{
+		PerPage: 100,
+	}
+
+	for {
+		discussions, resp, err := c.client.Discussions.ListMergeRequestDiscussions(projectID, mrID, opt)
+		if err != nil {
+			return nil, fmt.Errorf("failed to list discussions: %w", err)
+		}
+
+		allDiscussions = append(allDiscussions, discussions...)
+
+		if resp.NextPage == 0 {
+			break
+		}
+		opt.Page = resp.NextPage
+	}
+
+	return allDiscussions, nil
 }

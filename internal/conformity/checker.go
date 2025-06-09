@@ -2,18 +2,21 @@ package conformity
 
 import (
 	"fmt"
-	"sort"
 
 	"gitlab-mr-conformity-bot/internal/config"
 	"gitlab-mr-conformity-bot/internal/conformity/rules"
 	"gitlab-mr-conformity-bot/internal/gitlab"
 	"gitlab-mr-conformity-bot/pkg/logger"
+
+	gitlabapi "gitlab.com/gitlab-org/api/client-go"
 )
 
 type Checker struct {
-	rules        []rules.Rule
-	gitlabClient *gitlab.Client
-	logger       *logger.Logger
+	configLoader     *config.ConfigLoader
+	ruleBuilder      *RuleBuilder
+	summaryGenerator *SummaryGenerator
+	gitlabClient     *gitlab.Client
+	logger           *logger.Logger
 }
 
 type CheckResult struct {
@@ -29,53 +32,68 @@ type RuleFailure struct {
 	Suggestion []string
 }
 
-func NewChecker(rulesConfig config.RulesConfig, client *gitlab.Client, log *logger.Logger) *Checker {
-	var rulesList []rules.Rule
-
-	// Conditionally initialize rules based on configuration
-	if rulesConfig.Title.Enabled {
-		rulesList = append(rulesList, rules.NewTitleRule(rulesConfig.Title))
-	}
-	if rulesConfig.Description.Enabled {
-		rulesList = append(rulesList, rules.NewDescriptionRule(rulesConfig.Description))
-	}
-	if rulesConfig.Branch.Enabled {
-		rulesList = append(rulesList, rules.NewBranchRule(rulesConfig.Branch))
-	}
-	if rulesConfig.Commits.Enabled {
-		rulesList = append(rulesList, rules.NewCommitsRule(rulesConfig.Commits))
-	}
-	if rulesConfig.Approvals.Enabled {
-		rulesList = append(rulesList, rules.NewApprovalsRule(rulesConfig.Approvals))
-	}
-	if rulesConfig.Squash.Enabled {
-		rulesList = append(rulesList, rules.NewSquashRule(rulesConfig.Squash))
-	}
-
+func NewChecker(defaultConfig config.RulesConfig, client *gitlab.Client, log *logger.Logger) *Checker {
 	return &Checker{
-		rules:        rulesList,
-		gitlabClient: client,
-		logger:       log,
+		configLoader:     config.NewConfigLoader(defaultConfig, client, log),
+		ruleBuilder:      NewRuleBuilder(),
+		summaryGenerator: NewSummaryGenerator(),
+		gitlabClient:     client,
+		logger:           log,
 	}
 }
 
 func (c *Checker) CheckMergeRequest(projectID interface{}, mrID int) (*CheckResult, error) {
+	// Load configuration (repository or default)
+	finalConfig, err := c.configLoader.LoadConfig(projectID)
+	if err != nil {
+		return nil, fmt.Errorf("failed to load configuration: %w", err)
+	}
+
+	// Build rules based on configuration
+	rulesList := c.ruleBuilder.BuildRules(finalConfig)
+
+	// Get merge request and commits
+	mr, commits, err := c.fetchMergeRequestData(projectID, mrID)
+	if err != nil {
+		return nil, err
+	}
+
+	// Execute rule checks
+	failures := c.executeRuleChecks(rulesList, mr, commits)
+
+	// Generate results
+	passed := len(failures) == 0
+	summary := c.summaryGenerator.GenerateSummary(failures)
+
+	return &CheckResult{
+		Passed:   passed,
+		Failures: failures,
+		Summary:  summary,
+	}, nil
+}
+
+// fetchMergeRequestData retrieves merge request and commit data
+func (c *Checker) fetchMergeRequestData(projectID interface{}, mrID int) (*gitlabapi.MergeRequest, []*gitlabapi.Commit, error) {
 	// Get merge request details
 	mr, err := c.gitlabClient.GetMergeRequest(projectID, mrID)
 	if err != nil {
-		return nil, fmt.Errorf("failed to get merge request: %w", err)
+		return nil, nil, fmt.Errorf("failed to get merge request: %w", err)
 	}
 
 	// Get commits for commit-related rules
 	commits, err := c.gitlabClient.ListMergeRequestCommits(projectID, mrID)
 	if err != nil {
-		return nil, fmt.Errorf("failed to get commits: %w", err)
+		return nil, nil, fmt.Errorf("failed to get commits: %w", err)
 	}
 
+	return mr, commits, nil
+}
+
+// executeRuleChecks runs all rules and collects failures
+func (c *Checker) executeRuleChecks(rulesList []rules.Rule, mr *gitlabapi.MergeRequest, commits []*gitlabapi.Commit) []RuleFailure {
 	var failures []RuleFailure
 
-	// Check each rule
-	for _, rule := range c.rules {
+	for _, rule := range rulesList {
 		c.logger.Debug("Checking rule", "rule", rule.Name())
 
 		result, err := rule.Check(mr, commits)
@@ -94,43 +112,5 @@ func (c *Checker) CheckMergeRequest(projectID interface{}, mrID int) (*CheckResu
 		}
 	}
 
-	passed := len(failures) == 0
-	summary := c.generateSummary(failures)
-
-	return &CheckResult{
-		Passed:   passed,
-		Failures: failures,
-		Summary:  summary,
-	}, nil
-}
-
-func (c *Checker) generateSummary(failures []RuleFailure) string {
-	if len(failures) == 0 {
-		return "## 🧾 **MR Conformity Check Summary**\n\n✅ **All conformity checks passed!**"
-	}
-
-	summary := fmt.Sprintf("## 🧾 **MR Conformity Check Summary**\n\n### ❌ %d conformity check(s) failed:\n\n---\n\n", len(failures))
-
-	sort.Slice(failures, func(i, j int) bool {
-		// Sort with higher severity first
-		return failures[i].Severity > failures[j].Severity
-	})
-
-	for _, failure := range failures {
-		emoji := "⚠️"
-		if failure.Severity == rules.SeverityError {
-			emoji = "❌"
-		}
-
-		summary += fmt.Sprintf("#### %s **%s**\n\n", emoji, failure.RuleName)
-		for count, e := range failure.Error {
-			summary += fmt.Sprintf("📄 **Issue %d**: %s\n", count+1, e)
-			summary += fmt.Sprintf(">💡 **Tip**: %s", failure.Suggestion[count])
-			summary += "\n---\n\n"
-		}
-
-		summary += "\n---\n\n"
-	}
-
-	return summary
+	return failures
 }
