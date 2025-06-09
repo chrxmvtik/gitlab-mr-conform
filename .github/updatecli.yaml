@@ -13,6 +13,7 @@ scms:
       username: '{{ requiredEnv "GITHUB_ACTOR" }}'
       commitmessage:
         hidecredit: true
+        type: "chore(release)"
       workingbranch: false
       force: false
 

@@ -99,7 +99,7 @@ jobs:
           git config user.email 'github-actions[bot]@users.noreply.github.com'
           set +e
           git add CHANGELOG.md
-          git commit -m "release(prepare, $VERSION): update changelog [skip ci]"
+          git commit -m "chore(release): update changelog [skip ci]"
           git push https://${{ secrets.GITHUB_TOKEN }}@github.com/${GITHUB_REPOSITORY}.git $GITHUB_REF_NAME
 
       - name: Generate release notes
