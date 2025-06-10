@@ -29,6 +29,13 @@ Create chart name and version as used by the chart label.
 {{- end }}
 
 {{/*
+The image to use
+*/}}
+{{- define "gitlab-mr-conform.image" -}}
+{{- printf "%s:%s" .Values.image.repository (default .Chart.AppVersion .Values.image.tag) }}
+{{- end }}
+
+{{/*
 Common labels
 */}}
 {{- define "gitlab-mr-conform.labels" -}}
