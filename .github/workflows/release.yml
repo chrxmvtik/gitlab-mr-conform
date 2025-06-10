@@ -18,66 +18,98 @@ env:
   IMAGE_NAME: ${{ github.repository }}
 
 jobs:
-  prepare:
+  version:
     if: startsWith(github.ref, 'refs/heads/release/')
     runs-on: gha-runner-scale-set
     permissions:
-      contents: write
       packages: read
       id-token: write
     outputs:
       version: ${{ steps.version_step.outputs.semVer }}
     steps:
+      # Fetch repo
       - name: Checkout
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
-
+      # Install required dependencies
       - name: Setup .NET SDK and enable cache
         uses: actions/setup-dotnet@v3
         env:
           DOTNET_INSTALL_DIR: ~/.dotnet
         with:
           dotnet-version: "8.0.x"
-
+      # Setup gitversion
       - name: Setup gitversion
         uses: gittools/actions/gitversion/setup@v3.2.1
         with:
           versionSpec: "6.3.x"
-
+      # Determine version
       - name: Determine Version
         id: version_step # step id used as a reference for output values
         uses: gittools/actions/gitversion/execute@v3.2.1
         with:
           useConfigFile: true
           configFilePath: .github/GitVersion.yaml
-
+      # Print version
       - name: Use version in subsequent steps
         run: |
           echo "Building version ${{ steps.version_step.outputs.semVer }}"
+
+  bump-version:
+    if: startsWith(github.ref, 'refs/heads/release/')
+    runs-on: gha-runner-scale-set
+    needs:
+      - version
+    permissions:
+      contents: write
+      packages: read
+      id-token: write
+    steps:
+      # Fetch repository
+      - name: Checkout
+        uses: actions/checkout@v4
+      # Install UpdateCLI deps
       - name: Install Updatecli in the runner
         uses: updatecli/updatecli-action@v2
-
+      # Run UpdateCLI in dry-run mode to check changes
       - name: Run Updatecli in Dry Run mode
         run: "updatecli diff --config .github/updatecli.yaml"
         env:
           GITHUB_ACTOR: ${{ github.actor }}
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          VERSION: ${{ steps.version_step.outputs.semVer }}
+          VERSION: ${{ needs.version.outputs.version }}
           BRANCH: ${{ github.ref_name }}
           OWNER: ${{ github.repository_owner }}
           REPOSITORY: "gitlab-mr-conform"
-
+      # Run UpdateCLI in apply mode to confirm changes
       - name: Run Updatecli in apply mode
         run: "updatecli apply --config .github/updatecli.yaml"
         env:
           GITHUB_ACTOR: ${{ github.actor }}
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          VERSION: ${{ steps.version_step.outputs.semVer }}
+          VERSION: ${{ needs.version.outputs.version }}
           BRANCH: ${{ github.ref_name }}
           OWNER: ${{ github.repository_owner }}
           REPOSITORY: "gitlab-mr-conform"
 
+  changelog:
+    if: startsWith(github.ref, 'refs/heads/release/')
+    runs-on: gha-runner-scale-set
+    needs:
+      - version
+      - bump-version
+    permissions:
+      contents: write
+      packages: read
+      id-token: write
+    outputs:
+      release-notes: ${{ steps.release-notes.outputs.content }}
+    steps:
+      # Fetch repo
+      - name: Checkout
+        uses: actions/checkout@v4
+      # Generate changelog
       - name: Generate changelog
         uses: orhun/git-cliff-action@v4
         id: changelog
@@ -87,11 +119,22 @@ jobs:
         env:
           OUTPUT: CHANGELOG.md
           GITHUB_REPO: ${{ github.repository }}
-          VERSION: ${{ steps.version_step.outputs.semVer }}
-
+          VERSION: ${{ needs.version.outputs.version }}
+      # Generate release notes
+      - name: Generate release notes
+        uses: orhun/git-cliff-action@v4
+        id: release-notes
+        with:
+          config: .github/cliff.toml
+          args: --verbose --unreleased --tag v$VERSION --strip header
+        env:
+          OUTPUT: RELEASE_NOTES.md
+          GITHUB_REPO: ${{ github.repository }}
+          VERSION: ${{ needs.version.outputs.version }}
+      # Commit changelog to repository
       - name: Commit
         env:
-          VERSION: ${{ steps.version_step.outputs.semVer }}
+          VERSION: ${{ needs.version.outputs.version }}
         run: |
           git pull
           git checkout $GITHUB_REF_NAME
@@ -102,31 +145,35 @@ jobs:
           git commit -m "chore(release): update changelog [skip ci]"
           git push https://${{ secrets.GITHUB_TOKEN }}@github.com/${GITHUB_REPOSITORY}.git $GITHUB_REF_NAME
 
-      - name: Generate release notes
-        uses: orhun/git-cliff-action@v4
-        id: release-notes
-        with:
-          config: .github/cliff.toml
-          args: --verbose --unreleased --tag v$VERSION --strip header
-        env:
-          OUTPUT: RELEASE_NOTES.md
-          GITHUB_REPO: ${{ github.repository }}
-          VERSION: ${{ steps.version_step.outputs.semVer }}
-
+  release:
+    if: startsWith(github.ref, 'refs/heads/release/')
+    runs-on: gha-runner-scale-set
+    needs:
+      - version
+      - changelog
+    permissions:
+      contents: write
+      packages: read
+      id-token: write
+    steps:
+      # Fetch repo
+      - name: Checkout
+        uses: actions/checkout@v4
+      # Create release
       - name: Release
         uses: softprops/action-gh-release@v2
         with:
-          body: ${{ steps.release-notes.outputs.content }}
+          body: ${{ needs.changelog.outputs.release-notes }}
           repository: ${{ github.repository }}
           token: ${{ secrets.GITHUB_TOKEN }}
-          tag_name: v${{ steps.version_step.outputs.semVer }}
+          tag_name: v${{ needs.version.outputs.version }}
           make_latest: true
 
   build:
     runs-on: gha-runner-scale-set
     if: startsWith(github.ref, 'refs/heads/release/')
     needs:
-      - prepare
+      - version
     permissions:
       contents: read
       packages: write
@@ -178,7 +225,7 @@ jobs:
           platforms: linux/amd64,linux/arm64
           context: .
           push: ${{ github.event_name != 'pull_request' }}
-          tags: ${{  env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ needs.prepare.outputs.version }}
+          tags: ${{  env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ needs.version.outputs.version }}
           labels: ${{ steps.meta.outputs.labels }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
@@ -192,7 +239,7 @@ jobs:
         if: ${{ github.event_name != 'pull_request' }}
         env:
           # https://docs.github.com/en/actions/security-guides/security-hardening-for-github-actions#using-an-intermediate-environment-variable
-          TAGS: ${{  env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ needs.prepare.outputs.version }}
+          TAGS: ${{  env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ needs.version.outputs.version }}
           DIGEST: ${{ steps.build-and-push.outputs.digest }}
         # This step uses the identity token to provision an ephemeral certificate
         # against the sigstore community Fulcio instance.
