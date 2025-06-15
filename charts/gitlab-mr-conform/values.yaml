@@ -189,7 +189,6 @@ config:
           keys: []
       approvals:
         enabled: false
-        required: false
         min_count: 1
       squash:
         enabled: true

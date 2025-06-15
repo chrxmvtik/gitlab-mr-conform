@@ -16,7 +16,6 @@ func NewApprovalsRule(cfg interface{}) *ApprovalsRule {
 	approvalsCfg, ok := cfg.(config.ApprovalsConfig)
 	if !ok {
 		approvalsCfg = config.ApprovalsConfig{
-			Required: true,
 			MinCount: 1,
 		}
 	}
@@ -31,15 +30,13 @@ func (r *ApprovalsRule) Severity() Severity {
 	return SeverityError
 }
 
-func (r *ApprovalsRule) Check(mr *gitlabapi.MergeRequest, commits []*gitlabapi.Commit) (*RuleResult, error) {
+func (r *ApprovalsRule) Check(mr *gitlabapi.MergeRequest, commits []*gitlabapi.Commit, approvals *gitlabapi.MergeRequestApprovals) (*RuleResult, error) {
 	ruleResult := &RuleResult{}
 
-	if !r.config.Required {
-		return &RuleResult{Passed: true}, nil
-	}
+	approvalsCount := len(approvals.ApprovedBy)
 
-	if mr.UserNotesCount < r.config.MinCount {
-		ruleResult.Error = append(ruleResult.Error, fmt.Sprintf("Insufficient approvals (need %d, have %d)", r.config.MinCount, mr.UserNotesCount))
+	if approvalsCount < r.config.MinCount {
+		ruleResult.Error = append(ruleResult.Error, fmt.Sprintf("Insufficient approvals (need %d, have %d)", r.config.MinCount, approvalsCount))
 		ruleResult.Suggestion = append(ruleResult.Suggestion, "Wait for required approvals before merging")
 	}
 

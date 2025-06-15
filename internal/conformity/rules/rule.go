@@ -14,7 +14,7 @@ const (
 type Rule interface {
 	Name() string
 	Severity() Severity
-	Check(mr *gitlabapi.MergeRequest, commits []*gitlabapi.Commit) (*RuleResult, error)
+	Check(mr *gitlabapi.MergeRequest, commits []*gitlabapi.Commit, approvals *gitlabapi.MergeRequestApprovals) (*RuleResult, error)
 }
 
 type RuleResult struct {

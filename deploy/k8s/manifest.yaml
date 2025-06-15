@@ -85,7 +85,6 @@ data:
             - "TASK"
       approvals:
         enabled: true
-        required: true
         min_count: 2
       squash:
         enabled: true
@@ -177,7 +176,7 @@ spec:
             allowPrivilegeEscalation: false
             capabilities:
               drop:
-              - ALL
+                - ALL
             readOnlyRootFilesystem: true
           image: "ghcr.io/chrxmvtik/gitlab-mr-conform:v1.2.0"
           imagePullPolicy: IfNotPresent
@@ -238,15 +237,15 @@ spec:
       affinity:
         podAntiAffinity:
           preferredDuringSchedulingIgnoredDuringExecution:
-          - weight: 100
-            podAffinityTerm:
-              labelSelector:
-                matchExpressions:
-                - key: app.kubernetes.io/name
-                  operator: In
-                  values:
-                  - gitlab-mr-conform
-              topologyKey: kubernetes.io/hostname
+            - weight: 100
+              podAffinityTerm:
+                labelSelector:
+                  matchExpressions:
+                    - key: app.kubernetes.io/name
+                      operator: In
+                      values:
+                        - gitlab-mr-conform
+                topologyKey: kubernetes.io/hostname
       tolerations:
         - key: "node-role.kubernetes.io/worker"
           operator: "Exists"

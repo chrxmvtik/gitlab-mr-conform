@@ -78,7 +78,6 @@ rules:
 
   approvals:
     enabled: false
-    required: false
     min_count: 1
 
   squash:

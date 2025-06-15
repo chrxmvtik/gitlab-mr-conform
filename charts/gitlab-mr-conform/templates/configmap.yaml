@@ -70,7 +70,6 @@ data:
             {{- end }}
       approvals:
         enabled: {{ .Values.config.data.rules.approvals.enabled }}
-        required: {{ .Values.config.data.rules.approvals.required }}
         min_count: {{ .Values.config.data.rules.approvals.min_count }}
       squash:
         enabled: {{ .Values.config.data.rules.squash.enabled }}

@@ -58,8 +58,7 @@ rules:
       keys: []
 
   approvals:
-    enabled: false
-    required: false
+    enabled: true
     min_count: 1
 
   squash:

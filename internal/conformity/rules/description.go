@@ -32,7 +32,7 @@ func (r *DescriptionRule) Severity() Severity {
 	return SeverityWarning
 }
 
-func (r *DescriptionRule) Check(mr *gitlabapi.MergeRequest, commits []*gitlabapi.Commit) (*RuleResult, error) {
+func (r *DescriptionRule) Check(mr *gitlabapi.MergeRequest, commits []*gitlabapi.Commit, approvals *gitlabapi.MergeRequestApprovals) (*RuleResult, error) {
 	description := strings.TrimSpace(mr.Description)
 	ruleResult := &RuleResult{}
 

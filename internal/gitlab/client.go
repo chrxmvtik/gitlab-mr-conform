@@ -52,6 +52,14 @@ func (c *Client) GetMergeRequest(projectID interface{}, mrID int) (*gitlab.Merge
 	return mr, nil
 }
 
+func (c *Client) ListMergeRequestApprovals(projectID interface{}, mrID int) (*gitlab.MergeRequestApprovals, error) {
+	approvals, _, err := c.client.MergeRequests.GetMergeRequestApprovals(projectID, mrID, nil)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get merge request approvals: %w", err)
+	}
+	return approvals, nil
+}
+
 func (c *Client) ListMergeRequestCommits(projectID interface{}, mrID int) ([]*gitlab.Commit, error) {
 	commits, _, err := c.client.MergeRequests.GetMergeRequestCommits(projectID, mrID, nil)
 	if err != nil {

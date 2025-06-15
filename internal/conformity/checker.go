@@ -53,13 +53,13 @@ func (c *Checker) CheckMergeRequest(projectID interface{}, mrID int) (*CheckResu
 	rulesList := c.ruleBuilder.BuildRules(finalConfig)
 
 	// Get merge request and commits
-	mr, commits, err := c.fetchMergeRequestData(projectID, mrID)
+	mr, commits, approvals, err := c.fetchMergeRequestData(projectID, mrID)
 	if err != nil {
 		return nil, err
 	}
 
 	// Execute rule checks
-	failures := c.executeRuleChecks(rulesList, mr, commits)
+	failures := c.executeRuleChecks(rulesList, mr, commits, approvals)
 
 	// Generate results
 	passed := len(failures) == 0
@@ -73,30 +73,35 @@ func (c *Checker) CheckMergeRequest(projectID interface{}, mrID int) (*CheckResu
 }
 
 // fetchMergeRequestData retrieves merge request and commit data
-func (c *Checker) fetchMergeRequestData(projectID interface{}, mrID int) (*gitlabapi.MergeRequest, []*gitlabapi.Commit, error) {
+func (c *Checker) fetchMergeRequestData(projectID interface{}, mrID int) (*gitlabapi.MergeRequest, []*gitlabapi.Commit, *gitlabapi.MergeRequestApprovals, error) {
 	// Get merge request details
 	mr, err := c.gitlabClient.GetMergeRequest(projectID, mrID)
 	if err != nil {
-		return nil, nil, fmt.Errorf("failed to get merge request: %w", err)
+		return nil, nil, nil, fmt.Errorf("failed to get merge request: %w", err)
+	}
+	// Get mr approvers
+	approvals, err := c.gitlabClient.ListMergeRequestApprovals(projectID, mrID)
+	if err != nil {
+		return nil, nil, nil, fmt.Errorf("failed to get merge request: %w", err)
 	}
 
 	// Get commits for commit-related rules
 	commits, err := c.gitlabClient.ListMergeRequestCommits(projectID, mrID)
 	if err != nil {
-		return nil, nil, fmt.Errorf("failed to get commits: %w", err)
+		return nil, nil, nil, fmt.Errorf("failed to get commits: %w", err)
 	}
 
-	return mr, commits, nil
+	return mr, commits, approvals, nil
 }
 
 // executeRuleChecks runs all rules and collects failures
-func (c *Checker) executeRuleChecks(rulesList []rules.Rule, mr *gitlabapi.MergeRequest, commits []*gitlabapi.Commit) []RuleFailure {
+func (c *Checker) executeRuleChecks(rulesList []rules.Rule, mr *gitlabapi.MergeRequest, commits []*gitlabapi.Commit, approvals *gitlabapi.MergeRequestApprovals) []RuleFailure {
 	var failures []RuleFailure
 
 	for _, rule := range rulesList {
 		c.logger.Debug("Checking rule", "rule", rule.Name())
 
-		result, err := rule.Check(mr, commits)
+		result, err := rule.Check(mr, commits, approvals)
 		if err != nil {
 			c.logger.Error("Rule check failed", "rule", rule.Name(), "error", err)
 			continue

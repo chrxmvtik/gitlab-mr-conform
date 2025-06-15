@@ -39,7 +39,7 @@ func (r *CommitsRule) Severity() Severity {
 	return SeverityWarning
 }
 
-func (r *CommitsRule) Check(mr *gitlabapi.MergeRequest, commits []*gitlabapi.Commit) (*RuleResult, error) {
+func (r *CommitsRule) Check(mr *gitlabapi.MergeRequest, commits []*gitlabapi.Commit, approvals *gitlabapi.MergeRequestApprovals) (*RuleResult, error) {
 	// Aggregation structures - store commit info instead of just strings
 	var tooLongCommits []*gitlabapi.Commit
 	var invalidFormatCommits []*gitlabapi.Commit

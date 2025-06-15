@@ -66,7 +66,6 @@ type CommitsConfig struct {
 
 type ApprovalsConfig struct {
 	Enabled  bool `mapstructure:"enabled"`
-	Required bool `mapstructure:"required"`
 	MinCount int  `mapstructure:"min_count"`
 }
 
