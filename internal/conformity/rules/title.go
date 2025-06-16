@@ -41,7 +41,7 @@ func (r *TitleRule) Severity() Severity {
 	return SeverityError
 }
 
-func (r *TitleRule) Check(mr *gitlabapi.MergeRequest, commits []*gitlabapi.Commit, approvals *gitlabapi.MergeRequestApprovals) (*RuleResult, error) {
+func (r *TitleRule) Check(mr *gitlabapi.MergeRequest, commits []*gitlabapi.Commit, approvals *int) (*RuleResult, error) {
 	ruleResult := &RuleResult{}
 
 	title := mr.Title

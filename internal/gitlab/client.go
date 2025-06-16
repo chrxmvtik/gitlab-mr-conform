@@ -5,12 +5,20 @@ import (
 	"fmt"
 	"net/http"
 	"strings"
+	"time"
 
 	gitlab "gitlab.com/gitlab-org/api/client-go"
 )
 
 type Client struct {
 	client *gitlab.Client
+}
+
+type ApprovalInfo struct {
+	UserID    int
+	Username  string
+	Status    string // "approved" or "unapproved"
+	UpdatedAt *time.Time
 }
 
 func NewClient(token, baseURL string, insecure bool) (*Client, error) {
@@ -52,12 +60,54 @@ func (c *Client) GetMergeRequest(projectID interface{}, mrID int) (*gitlab.Merge
 	return mr, nil
 }
 
-func (c *Client) ListMergeRequestApprovals(projectID interface{}, mrID int) (*gitlab.MergeRequestApprovals, error) {
-	approvals, _, err := c.client.MergeRequests.GetMergeRequestApprovals(projectID, mrID, nil)
+func (c *Client) ListMergeRequestApprovals(projectID interface{}, mrID int) (*int, error) {
+	notes, _, err := c.client.Notes.ListMergeRequestNotes(projectID, mrID, nil)
 	if err != nil {
-		return nil, fmt.Errorf("failed to get merge request approvals: %w", err)
+		return nil, fmt.Errorf("failed to get merge request notes: %w", err)
 	}
-	return approvals, nil
+	// Map to store latest approval status for each user
+	userApprovals := make(map[int]ApprovalInfo)
+
+	for _, note := range notes {
+		// Check if note is system-generated and contains approval information
+		if !note.System {
+			continue
+		}
+
+		var status string
+		noteBody := strings.ToLower(note.Body)
+
+		// Check for approval patterns in system notes
+		if strings.EqualFold(noteBody, "approved this merge request") {
+			status = "approved"
+		} else if strings.EqualFold(noteBody, "unapproved this merge request") {
+			status = "unapproved"
+		} else {
+			// Skip notes that aren't approval-related
+			continue
+		}
+
+		// Get existing approval info for this user
+		existing, exists := userApprovals[note.Author.ID]
+
+		// Update if this is the first entry for user or if this note is newer
+		if !exists || (note.UpdatedAt != nil && (existing.UpdatedAt == nil || note.UpdatedAt.After(*existing.UpdatedAt))) {
+			userApprovals[note.Author.ID] = ApprovalInfo{
+				UserID:    note.Author.ID,
+				Username:  note.Author.Username,
+				Status:    status,
+				UpdatedAt: note.UpdatedAt,
+			}
+		}
+	}
+	count := 0
+	for _, approval := range userApprovals {
+		if approval.Status == "approved" {
+			count++
+		}
+	}
+
+	return &count, nil
 }
 
 func (c *Client) ListMergeRequestCommits(projectID interface{}, mrID int) ([]*gitlab.Commit, error) {

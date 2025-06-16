@@ -33,7 +33,7 @@ func (r *SquashRule) Severity() Severity {
 	return SeverityError
 }
 
-func (r *SquashRule) Check(mr *gitlabapi.MergeRequest, commits []*gitlabapi.Commit, approvals *gitlabapi.MergeRequestApprovals) (*RuleResult, error) {
+func (r *SquashRule) Check(mr *gitlabapi.MergeRequest, commits []*gitlabapi.Commit, approvals *int) (*RuleResult, error) {
 	branchName := mr.SourceBranch
 	matched := false
 	ruleResult := &RuleResult{}

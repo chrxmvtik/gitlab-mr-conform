@@ -30,13 +30,11 @@ func (r *ApprovalsRule) Severity() Severity {
 	return SeverityError
 }
 
-func (r *ApprovalsRule) Check(mr *gitlabapi.MergeRequest, commits []*gitlabapi.Commit, approvals *gitlabapi.MergeRequestApprovals) (*RuleResult, error) {
+func (r *ApprovalsRule) Check(mr *gitlabapi.MergeRequest, commits []*gitlabapi.Commit, approvals *int) (*RuleResult, error) {
 	ruleResult := &RuleResult{}
 
-	approvalsCount := len(approvals.ApprovedBy)
-
-	if approvalsCount < r.config.MinCount {
-		ruleResult.Error = append(ruleResult.Error, fmt.Sprintf("Insufficient approvals (need %d, have %d)", r.config.MinCount, approvalsCount))
+	if *approvals < r.config.MinCount {
+		ruleResult.Error = append(ruleResult.Error, fmt.Sprintf("Insufficient approvals (need %d, have %d)", r.config.MinCount, *approvals))
 		ruleResult.Suggestion = append(ruleResult.Suggestion, "Wait for required approvals before merging")
 	}
 

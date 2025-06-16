@@ -31,7 +31,7 @@ func (r *BranchRule) Severity() Severity {
 	return SeverityWarning
 }
 
-func (r *BranchRule) Check(mr *gitlabapi.MergeRequest, commits []*gitlabapi.Commit, approvals *gitlabapi.MergeRequestApprovals) (*RuleResult, error) {
+func (r *BranchRule) Check(mr *gitlabapi.MergeRequest, commits []*gitlabapi.Commit, approvals *int) (*RuleResult, error) {
 	ruleResult := &RuleResult{}
 
 	branchName := mr.SourceBranch

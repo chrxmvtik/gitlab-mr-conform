@@ -73,7 +73,7 @@ func (c *Checker) CheckMergeRequest(projectID interface{}, mrID int) (*CheckResu
 }
 
 // fetchMergeRequestData retrieves merge request and commit data
-func (c *Checker) fetchMergeRequestData(projectID interface{}, mrID int) (*gitlabapi.MergeRequest, []*gitlabapi.Commit, *gitlabapi.MergeRequestApprovals, error) {
+func (c *Checker) fetchMergeRequestData(projectID interface{}, mrID int) (*gitlabapi.MergeRequest, []*gitlabapi.Commit, *int, error) {
 	// Get merge request details
 	mr, err := c.gitlabClient.GetMergeRequest(projectID, mrID)
 	if err != nil {
@@ -95,7 +95,7 @@ func (c *Checker) fetchMergeRequestData(projectID interface{}, mrID int) (*gitla
 }
 
 // executeRuleChecks runs all rules and collects failures
-func (c *Checker) executeRuleChecks(rulesList []rules.Rule, mr *gitlabapi.MergeRequest, commits []*gitlabapi.Commit, approvals *gitlabapi.MergeRequestApprovals) []RuleFailure {
+func (c *Checker) executeRuleChecks(rulesList []rules.Rule, mr *gitlabapi.MergeRequest, commits []*gitlabapi.Commit, approvals *int) []RuleFailure {
 	var failures []RuleFailure
 
 	for _, rule := range rulesList {
