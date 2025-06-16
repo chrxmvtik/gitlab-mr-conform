@@ -149,12 +149,44 @@ jobs:
           GITHUB_REPO: ${{ github.repository }}
           VERSION: ${{ needs.version.outputs.version }}
 
-  release:
+  squash:
     if: startsWith(github.ref, 'refs/heads/release/')
     runs-on: gha-runner-scale-set
     needs:
       - version
       - changelog
+    permissions:
+      contents: write
+      packages: read
+      id-token: write
+    steps:
+      # Fetch repo
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      # Squash release commits to avoid spam on main
+      - name: Squash release commits
+        env:
+          VERSION: ${{ needs.version.outputs.version }}
+        run: |
+          git pull
+          git checkout $GITHUB_REF_NAME
+          git config user.name 'github-actions[bot]'
+          git config user.email 'github-actions[bot]@users.noreply.github.com'
+          set +e
+          git log $GITHUB_REF_NAME --oneline
+          git reset --soft HEAD~4
+          git diff --cached
+          git commit -m "chore(release): prepare v$VERSION"
+          git push https://${{ secrets.GITHUB_TOKEN }}@github.com/${GITHUB_REPOSITORY}.git $GITHUB_REF_NAME --force
+
+  release:
+    if: startsWith(github.ref, 'refs/heads/release/')
+    runs-on: gha-runner-scale-set
+    needs:
+      - version
+      - squash
     permissions:
       contents: write
       packages: read

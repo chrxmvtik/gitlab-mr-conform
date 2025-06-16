@@ -7,7 +7,6 @@ toolchain go1.23.4
 require (
 	github.com/bmatcuk/doublestar/v4 v4.8.1
 	github.com/gin-gonic/gin v1.10.1
-	github.com/sirupsen/logrus v1.9.3
 	github.com/spf13/viper v1.20.1
 	gitlab.com/gitlab-org/api/client-go v0.130.1
 )
