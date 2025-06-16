@@ -1,44 +1,49 @@
 package logger
 
 import (
-	"github.com/sirupsen/logrus"
+	"log/slog"
+	"os"
 )
 
 type Logger struct {
-	*logrus.Logger
+	*slog.Logger
 }
 
 func New() *Logger {
-	log := logrus.New()
-	log.SetLevel(logrus.InfoLevel)
-	log.SetFormatter(&logrus.JSONFormatter{})
+	// Create a JSON handler that writes to stdout
+	handler := slog.NewJSONHandler(os.Stdout, &slog.HandlerOptions{
+		Level: slog.LevelInfo,
+	})
+	log := slog.New(handler)
 
 	return &Logger{Logger: log}
 }
 
 func (l *Logger) Debug(msg string, fields ...interface{}) {
-	l.WithFields(toLogrusFields(fields...)).Debug(msg)
+	l.Logger.Debug(msg, toSlogArgs(fields...)...)
 }
 
 func (l *Logger) Info(msg string, fields ...interface{}) {
-	l.WithFields(toLogrusFields(fields...)).Info(msg)
+	l.Logger.Info(msg, toSlogArgs(fields...)...)
 }
 
 func (l *Logger) Error(msg string, fields ...interface{}) {
-	l.WithFields(toLogrusFields(fields...)).Error(msg)
+	l.Logger.Error(msg, toSlogArgs(fields...)...)
 }
 
 func (l *Logger) Fatal(msg string, fields ...interface{}) {
-	l.WithFields(toLogrusFields(fields...)).Fatal(msg)
+	l.Logger.Error(msg, toSlogArgs(fields...)...)
+	os.Exit(1)
 }
 
-func toLogrusFields(keyvals ...interface{}) logrus.Fields {
-	fields := make(logrus.Fields)
+func toSlogArgs(keyvals ...interface{}) []interface{} {
+	args := make([]interface{}, 0, len(keyvals))
 	for i := 0; i < len(keyvals); i += 2 {
 		if i+1 < len(keyvals) {
 			key := keyvals[i].(string)
-			fields[key] = keyvals[i+1]
+			value := keyvals[i+1]
+			args = append(args, key, value)
 		}
 	}
-	return fields
+	return args
 }
