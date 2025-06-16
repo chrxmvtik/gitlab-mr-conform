@@ -237,7 +237,7 @@ func (c *Client) getAllNotes(projectID interface{}, mrID int) ([]*gitlab.Note, e
 	for {
 		notes, resp, err := c.client.Notes.ListMergeRequestNotes(projectID, mrID, opt)
 		if err != nil {
-			return nil, fmt.Errorf("failed to list discussions: %w", err)
+			return nil, fmt.Errorf("failed to list notes: %w", err)
 		}
 
 		allNotes = append(allNotes, notes...)
