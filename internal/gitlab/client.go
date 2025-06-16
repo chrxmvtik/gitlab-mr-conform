@@ -61,9 +61,10 @@ func (c *Client) GetMergeRequest(projectID interface{}, mrID int) (*gitlab.Merge
 }
 
 func (c *Client) ListMergeRequestApprovals(projectID interface{}, mrID int) (*int, error) {
-	notes, _, err := c.client.Notes.ListMergeRequestNotes(projectID, mrID, nil)
+	// List notes
+	notes, err := c.getAllNotes(projectID, mrID)
 	if err != nil {
-		return nil, fmt.Errorf("failed to get merge request notes: %w", err)
+		return nil, fmt.Errorf("failed to list notes: %w", err)
 	}
 	// Map to store latest approval status for each user
 	userApprovals := make(map[int]ApprovalInfo)
@@ -123,9 +124,6 @@ func (c *Client) CreateUpdateMergeRequestDiscussion(projectID interface{}, mrID 
 
 	// List discussions
 	discussions, err := c.getAllDiscussions(projectID, mrID)
-	if err != nil {
-		return err
-	}
 	if err != nil {
 		return fmt.Errorf("failed to list discussions: %w", err)
 	}
@@ -230,4 +228,25 @@ func (c *Client) getAllDiscussions(projectID interface{}, mrID int) ([]*gitlab.D
 	}
 
 	return allDiscussions, nil
+}
+
+func (c *Client) getAllNotes(projectID interface{}, mrID int) ([]*gitlab.Note, error) {
+	var allNotes []*gitlab.Note
+	opt := &gitlab.ListMergeRequestNotesOptions{ListOptions: gitlab.ListOptions{PerPage: 100}}
+
+	for {
+		notes, resp, err := c.client.Notes.ListMergeRequestNotes(projectID, mrID, opt)
+		if err != nil {
+			return nil, fmt.Errorf("failed to list discussions: %w", err)
+		}
+
+		allNotes = append(allNotes, notes...)
+
+		if resp.NextPage == 0 {
+			break
+		}
+		opt.Page = resp.NextPage
+	}
+
+	return allNotes, nil
 }
