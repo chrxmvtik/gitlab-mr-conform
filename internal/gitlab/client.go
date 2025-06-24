@@ -160,11 +160,21 @@ func (c *Client) CreateUpdateMergeRequestDiscussion(projectID interface{}, mrID 
 		Body: &note,
 	}
 
+	// Create discussion
 	cD, _, err := c.client.Discussions.CreateMergeRequestDiscussion(projectID, mrID, cdOpts)
 	if err != nil {
 		return fmt.Errorf("failed to create merge request discussion: %w", err)
 	}
 	fmt.Printf("Created discussion, id: %s\n", cD.ID)
+
+	// Set resolve status
+	c.client.Discussions.ResolveMergeRequestDiscussion(projectID, mrID, cD.ID, &gitlab.ResolveMergeRequestDiscussionOptions{
+		Resolved: &passed,
+	})
+	if err != nil {
+		return fmt.Errorf("failed to set resolve status: %w", err)
+	}
+
 	return nil
 }
 
