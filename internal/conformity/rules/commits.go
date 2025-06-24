@@ -3,7 +3,8 @@ package rules
 import (
 	"fmt"
 	"gitlab-mr-conformity-bot/internal/config"
-	"gitlab-mr-conformity-bot/internal/conformity/helper"
+	"gitlab-mr-conformity-bot/internal/conformity/helper/codeowners"
+	"gitlab-mr-conformity-bot/internal/conformity/helper/common"
 	"regexp"
 	"strings"
 
@@ -39,7 +40,7 @@ func (r *CommitsRule) Severity() Severity {
 	return SeverityWarning
 }
 
-func (r *CommitsRule) Check(mr *gitlabapi.MergeRequest, commits []*gitlabapi.Commit, approvals *int) (*RuleResult, error) {
+func (r *CommitsRule) Check(mr *gitlabapi.MergeRequest, commits []*gitlabapi.Commit, approvals *common.Approvals, cos []*codeowners.PatternGroup, members []*gitlabapi.ProjectMember) (*RuleResult, error) {
 	// Aggregation structures - store commit info instead of just strings
 	var tooLongCommits []*gitlabapi.Commit
 	var invalidFormatCommits []*gitlabapi.Commit
@@ -58,7 +59,7 @@ func (r *CommitsRule) Check(mr *gitlabapi.MergeRequest, commits []*gitlabapi.Com
 		}
 
 		// Conventional Commit Check
-		groups := helper.ParseHeader(commit.Message)
+		groups := common.ParseHeader(commit.Message)
 		if len(groups) != 7 {
 			invalidFormatCommits = append(invalidFormatCommits, commit)
 		} else if len(groups) == 7 {
@@ -101,12 +102,12 @@ func (r *CommitsRule) Check(mr *gitlabapi.MergeRequest, commits []*gitlabapi.Com
 
 		// Jira Issue Check
 		if len(r.config.Jira.Keys) > 0 {
-			if !helper.JiraRegex.MatchString(commit.Message) {
+			if !common.JiraRegex.MatchString(commit.Message) {
 				missingJiraCommits = append(missingJiraCommits, commit)
 			} else {
-				submatch := helper.JiraRegex.FindStringSubmatch(commit.Message)
+				submatch := common.JiraRegex.FindStringSubmatch(commit.Message)
 				jiraProject := submatch[1]
-				if !helper.Contains(r.config.Jira.Keys, jiraProject) {
+				if !common.Contains(r.config.Jira.Keys, jiraProject) {
 					if invalidJiraProjects[jiraProject] == nil {
 						invalidJiraProjects[jiraProject] = []*gitlabapi.Commit{}
 					}
@@ -123,7 +124,7 @@ func (r *CommitsRule) Check(mr *gitlabapi.MergeRequest, commits []*gitlabapi.Com
 	if len(tooLongCommits) > 0 {
 		errorMsg := fmt.Sprintf("%d commit(s) exceed max length of %d chars:", len(tooLongCommits), r.config.MaxLength)
 		for _, commit := range tooLongCommits {
-			commitTitle := helper.TruncateCommitMessage(strings.Split(commit.Message, "\n")[0], 50)
+			commitTitle := common.TruncateCommitMessage(strings.Split(commit.Message, "\n")[0], 50)
 			errorMsg += fmt.Sprintf("\n  - %s ([%s](%s))", commitTitle, commit.ShortID, commit.WebURL)
 		}
 		ruleResult.Error = append(ruleResult.Error, errorMsg)
@@ -134,7 +135,7 @@ func (r *CommitsRule) Check(mr *gitlabapi.MergeRequest, commits []*gitlabapi.Com
 	if len(invalidFormatCommits) > 0 {
 		errorMsg := fmt.Sprintf("%d commit(s) have invalid Conventional Commit format:", len(invalidFormatCommits))
 		for _, commit := range invalidFormatCommits {
-			commitTitle := helper.TruncateCommitMessage(strings.Split(commit.Message, "\n")[0], 50)
+			commitTitle := common.TruncateCommitMessage(strings.Split(commit.Message, "\n")[0], 50)
 			errorMsg += fmt.Sprintf("\n  - %s ([%s](%s))", commitTitle, commit.ShortID, commit.WebURL)
 		}
 		ruleResult.Error = append(ruleResult.Error, errorMsg)
@@ -145,7 +146,7 @@ func (r *CommitsRule) Check(mr *gitlabapi.MergeRequest, commits []*gitlabapi.Com
 	for invalidType, commits := range invalidTypes {
 		errorMsg := fmt.Sprintf("%d commit(s) use invalid type '%s':", len(commits), invalidType)
 		for _, commit := range commits {
-			commitTitle := helper.TruncateCommitMessage(strings.Split(commit.Message, "\n")[0], 50)
+			commitTitle := common.TruncateCommitMessage(strings.Split(commit.Message, "\n")[0], 50)
 			errorMsg += fmt.Sprintf("\n  - %s ([%s](%s))", commitTitle, commit.ShortID, commit.WebURL)
 		}
 		ruleResult.Error = append(ruleResult.Error, errorMsg)
@@ -157,7 +158,7 @@ func (r *CommitsRule) Check(mr *gitlabapi.MergeRequest, commits []*gitlabapi.Com
 	for invalidScope, commits := range invalidScopes {
 		errorMsg := fmt.Sprintf("%d commit(s) use invalid scope '%s':", len(commits), invalidScope)
 		for _, commit := range commits {
-			commitTitle := helper.TruncateCommitMessage(strings.Split(commit.Message, "\n")[0], 50)
+			commitTitle := common.TruncateCommitMessage(strings.Split(commit.Message, "\n")[0], 50)
 			errorMsg += fmt.Sprintf("\n  - %s ([%s](%s))", commitTitle, commit.ShortID, commit.WebURL)
 		}
 		ruleResult.Error = append(ruleResult.Error, errorMsg)
@@ -168,7 +169,7 @@ func (r *CommitsRule) Check(mr *gitlabapi.MergeRequest, commits []*gitlabapi.Com
 	if len(missingJiraCommits) > 0 {
 		errorMsg := fmt.Sprintf("%d commit(s) missing Jira issue tag:", len(missingJiraCommits))
 		for _, commit := range missingJiraCommits {
-			commitTitle := helper.TruncateCommitMessage(strings.Split(commit.Message, "\n")[0], 50)
+			commitTitle := common.TruncateCommitMessage(strings.Split(commit.Message, "\n")[0], 50)
 			errorMsg += fmt.Sprintf("\n  - %s ([%s](%s))", commitTitle, commit.ShortID, commit.WebURL)
 		}
 		ruleResult.Error = append(ruleResult.Error, errorMsg)
@@ -179,7 +180,7 @@ func (r *CommitsRule) Check(mr *gitlabapi.MergeRequest, commits []*gitlabapi.Com
 	for invalidProject, commits := range invalidJiraProjects {
 		errorMsg := fmt.Sprintf("* %d commit(s) use invalid Jira project '%s':", len(commits), invalidProject)
 		for _, commit := range commits {
-			commitTitle := helper.TruncateCommitMessage(strings.Split(commit.Message, "\n")[0], 50)
+			commitTitle := common.TruncateCommitMessage(strings.Split(commit.Message, "\n")[0], 50)
 			errorMsg += fmt.Sprintf("\n  - %s ([%s](%s))", commitTitle, commit.ShortID, commit.WebURL)
 		}
 		ruleResult.Error = append(ruleResult.Error, errorMsg)

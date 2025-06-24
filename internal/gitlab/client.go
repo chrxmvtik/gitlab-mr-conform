@@ -3,6 +3,7 @@ package gitlab
 import (
 	"crypto/tls"
 	"fmt"
+	"gitlab-mr-conformity-bot/internal/conformity/helper/common"
 	"net/http"
 	"strings"
 	"time"
@@ -12,13 +13,6 @@ import (
 
 type Client struct {
 	client *gitlab.Client
-}
-
-type ApprovalInfo struct {
-	UserID    int
-	Username  string
-	Status    string // "approved" or "unapproved"
-	UpdatedAt *time.Time
 }
 
 func NewClient(token, baseURL string, insecure bool) (*Client, error) {
@@ -60,14 +54,14 @@ func (c *Client) GetMergeRequest(projectID interface{}, mrID int) (*gitlab.Merge
 	return mr, nil
 }
 
-func (c *Client) ListMergeRequestApprovals(projectID interface{}, mrID int) (*int, error) {
+func (c *Client) ListMergeRequestApprovals(projectID interface{}, mrID int) (*common.Approvals, error) {
 	// List notes
 	notes, err := c.getAllNotes(projectID, mrID)
 	if err != nil {
 		return nil, fmt.Errorf("failed to list notes: %w", err)
 	}
 	// Map to store latest approval status for each user
-	userApprovals := make(map[int]ApprovalInfo)
+	userApprovals := make(map[int]common.ApprovalInfo)
 
 	for _, note := range notes {
 		// Check if note is system-generated and contains approval information
@@ -93,7 +87,7 @@ func (c *Client) ListMergeRequestApprovals(projectID interface{}, mrID int) (*in
 
 		// Update if this is the first entry for user or if this note is newer
 		if !exists || (note.UpdatedAt != nil && (existing.UpdatedAt == nil || note.UpdatedAt.After(*existing.UpdatedAt))) {
-			userApprovals[note.Author.ID] = ApprovalInfo{
+			userApprovals[note.Author.ID] = common.ApprovalInfo{
 				UserID:    note.Author.ID,
 				Username:  note.Author.Username,
 				Status:    status,
@@ -108,7 +102,12 @@ func (c *Client) ListMergeRequestApprovals(projectID interface{}, mrID int) (*in
 		}
 	}
 
-	return &count, nil
+	approvals := common.Approvals{
+		ApprovalsCount: count,
+		ApprovalsInfo:  userApprovals,
+	}
+
+	return &approvals, nil
 }
 
 func (c *Client) ListMergeRequestCommits(projectID interface{}, mrID int) ([]*gitlab.Commit, error) {
@@ -120,7 +119,7 @@ func (c *Client) ListMergeRequestCommits(projectID interface{}, mrID int) ([]*gi
 }
 
 func (c *Client) CreateUpdateMergeRequestDiscussion(projectID interface{}, mrID int, note string, passed bool) error {
-	identifier := "MR Conformity Check Summary"
+	identifier := "Merge Request Compliance Report"
 
 	// List discussions
 	discussions, err := c.getAllDiscussions(projectID, mrID)
@@ -259,4 +258,80 @@ func (c *Client) getAllNotes(projectID interface{}, mrID int) ([]*gitlab.Note, e
 	}
 
 	return allNotes, nil
+}
+
+func (c *Client) GetAllDiffsPaths(projectID interface{}, mrID int) ([]string, error) {
+	var allDiffs []*gitlab.MergeRequestDiff
+	opt := &gitlab.ListMergeRequestDiffsOptions{ListOptions: gitlab.ListOptions{PerPage: 20}}
+
+	for {
+		diffs, resp, err := c.client.MergeRequests.ListMergeRequestDiffs(projectID, mrID, opt)
+		if err != nil {
+			return nil, fmt.Errorf("failed to list diffs: %w", err)
+		}
+
+		allDiffs = append(allDiffs, diffs...)
+
+		if resp.NextPage == 0 {
+			break
+		}
+		opt.Page = resp.NextPage
+	}
+
+	var allPaths []string
+
+	for _, diff := range allDiffs {
+		if diff.DeletedFile {
+			allPaths = append(allPaths, diff.OldPath)
+		} else {
+			allPaths = append(allPaths, diff.NewPath)
+		}
+	}
+
+	return allPaths, nil
+}
+
+func (c *Client) GetCodeownersFile(projectID interface{}) (*gitlab.File, error) {
+	// Check default branch
+	cP, _, err := c.client.Projects.GetProject(projectID, nil)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get repository info: %w", err)
+	}
+	co, _, err := c.client.RepositoryFiles.GetFile(projectID, ".gitlab/CODEOWNERS", &gitlab.GetFileOptions{
+		Ref: &cP.DefaultBranch,
+	})
+	if err != nil {
+		return nil, fmt.Errorf("failed to CODEOWNERS file: %w", err)
+	}
+
+	return co, nil
+}
+func (c *Client) ListProjectMembers(projectID interface{}) ([]*gitlab.ProjectMember, error) {
+	var allMembers []*gitlab.ProjectMember
+	opt := &gitlab.ListProjectMembersOptions{ListOptions: gitlab.ListOptions{PerPage: 20}}
+
+	for {
+		members, resp, err := c.client.ProjectMembers.ListAllProjectMembers(projectID, opt)
+		if err != nil {
+			return nil, fmt.Errorf("failed to list project members: %w", err)
+		}
+
+		allMembers = append(allMembers, members...)
+
+		if resp.NextPage == 0 {
+			break
+		}
+		opt.Page = resp.NextPage
+	}
+
+	var activeMembers []*gitlab.ProjectMember
+	now := time.Now()
+
+	for _, member := range allMembers {
+		if member.State == "active" && (member.ExpiresAt == nil || time.Time(*member.ExpiresAt).After(now)) {
+			activeMembers = append(activeMembers, member)
+		}
+	}
+
+	return activeMembers, nil
 }

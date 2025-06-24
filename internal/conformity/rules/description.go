@@ -5,6 +5,8 @@ import (
 	"strings"
 
 	"gitlab-mr-conformity-bot/internal/config"
+	"gitlab-mr-conformity-bot/internal/conformity/helper/codeowners"
+	"gitlab-mr-conformity-bot/internal/conformity/helper/common"
 
 	gitlabapi "gitlab.com/gitlab-org/api/client-go"
 )
@@ -32,7 +34,7 @@ func (r *DescriptionRule) Severity() Severity {
 	return SeverityWarning
 }
 
-func (r *DescriptionRule) Check(mr *gitlabapi.MergeRequest, commits []*gitlabapi.Commit, approvals *int) (*RuleResult, error) {
+func (r *DescriptionRule) Check(mr *gitlabapi.MergeRequest, commits []*gitlabapi.Commit, approvals *common.Approvals, cos []*codeowners.PatternGroup, members []*gitlabapi.ProjectMember) (*RuleResult, error) {
 	description := strings.TrimSpace(mr.Description)
 	ruleResult := &RuleResult{}
 

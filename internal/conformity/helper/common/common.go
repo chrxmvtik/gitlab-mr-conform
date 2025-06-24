@@ -1,8 +1,9 @@
-package helper
+package common
 
 import (
 	"regexp"
 	"strings"
+	"time"
 )
 
 // HeaderRegex is the regular expression used for Conventional Commits 1.0.0.
@@ -32,4 +33,16 @@ func TruncateCommitMessage(msg string, maxLen int) string {
 		return msg
 	}
 	return msg[:maxLen] + "..."
+}
+
+type ApprovalInfo struct {
+	UserID    int
+	Username  string
+	Status    string // "approved" or "unapproved"
+	UpdatedAt *time.Time
+}
+
+type Approvals struct {
+	ApprovalsCount int
+	ApprovalsInfo  map[int]ApprovalInfo
 }

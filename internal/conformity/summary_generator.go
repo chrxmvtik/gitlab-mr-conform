@@ -26,12 +26,12 @@ func (sg *SummaryGenerator) GenerateSummary(failures []RuleFailure) string {
 
 // generateSuccessSummary creates a summary for when all checks pass
 func (sg *SummaryGenerator) generateSuccessSummary() string {
-	return "## 🧾 **MR Conformity Check Summary**\n\n✅ **All conformity checks passed!**"
+	return "## 🧾 **Merge Request Compliance Report**\n\n✅ **All conformity checks passed!**"
 }
 
 // generateFailureSummary creates a summary for when checks fail
 func (sg *SummaryGenerator) generateFailureSummary(failures []RuleFailure) string {
-	summary := fmt.Sprintf("## 🧾 **MR Conformity Check Summary**\n\n### ❌ %d conformity check(s) failed:\n\n---\n\n", len(failures))
+	summary := fmt.Sprintf("## 🧾 **Merge Request Compliance Report**\n\n### ❌ %d conformity check(s) failed:\n\n---\n\n", len(failures))
 
 	// Sort failures by severity (higher severity first)
 	sortedFailures := sg.sortFailuresBySeverity(failures)

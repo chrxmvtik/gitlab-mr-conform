@@ -4,6 +4,8 @@ import (
 	"fmt"
 
 	"gitlab-mr-conformity-bot/internal/config"
+	"gitlab-mr-conformity-bot/internal/conformity/helper/codeowners"
+	"gitlab-mr-conformity-bot/internal/conformity/helper/common"
 
 	doublestar "github.com/bmatcuk/doublestar/v4"
 
@@ -33,7 +35,7 @@ func (r *SquashRule) Severity() Severity {
 	return SeverityError
 }
 
-func (r *SquashRule) Check(mr *gitlabapi.MergeRequest, commits []*gitlabapi.Commit, approvals *int) (*RuleResult, error) {
+func (r *SquashRule) Check(mr *gitlabapi.MergeRequest, commits []*gitlabapi.Commit, approvals *common.Approvals, cos []*codeowners.PatternGroup, members []*gitlabapi.ProjectMember) (*RuleResult, error) {
 	branchName := mr.SourceBranch
 	matched := false
 	ruleResult := &RuleResult{}

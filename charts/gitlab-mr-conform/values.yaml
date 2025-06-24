@@ -129,6 +129,7 @@ config:
     server:
       port: 8080
       host: "0.0.0.0"
+      log_level: info
     gitlab:
       # Note: GITLAB_MR_BOT_GITLAB_TOKEN and GITLAB_MR_BOT_GITLAB_SECRET_TOKEN
       # are set via environment variables from the secret
@@ -189,6 +190,7 @@ config:
           keys: []
       approvals:
         enabled: false
+        use_codeowners: false
         min_count: 1
       squash:
         enabled: true

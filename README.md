@@ -46,6 +46,7 @@ Create a `config.yaml` file to define your compliance rules:
 server:
   port: 8080
   host: "0.0.0.0"
+  log_level: info
 
 gitlab:
   base_url: "https://gitlab.com"
@@ -78,6 +79,7 @@ rules:
 
   approvals:
     enabled: false
+    use_codeowners: false
     min_count: 1
 
   squash:

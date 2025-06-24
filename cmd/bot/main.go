@@ -29,6 +29,8 @@ func main() {
 		log.Fatal("Failed to load configuration", "error", err)
 	}
 
+	log.SetLevel(cfg.Server.LogLevel)
+
 	// Initialize GitLab client
 	gitlabClient, err := gitlab.NewClient(cfg.GitLab.Token, cfg.GitLab.BaseURL, cfg.GitLab.Insecure)
 	if err != nil {

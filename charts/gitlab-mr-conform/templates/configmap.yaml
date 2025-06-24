@@ -10,6 +10,7 @@ data:
     server:
       port: {{ .Values.config.data.server.port }}
       host: {{ .Values.config.data.server.host | quote }}
+      log_level: {{ .Values.config.data.server.log_level | quote }}
     gitlab:
       base_url: {{ .Values.config.data.gitlab.base_url | quote }}
       insecure: {{ .Values.config.data.gitlab.insecure }}
@@ -70,6 +71,7 @@ data:
             {{- end }}
       approvals:
         enabled: {{ .Values.config.data.rules.approvals.enabled }}
+        use_codeowners: {{ .Values.config.data.rules.approvals.use_codeowners }}
         min_count: {{ .Values.config.data.rules.approvals.min_count }}
       squash:
         enabled: {{ .Values.config.data.rules.squash.enabled }}

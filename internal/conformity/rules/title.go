@@ -6,7 +6,8 @@ import (
 	"strings"
 
 	"gitlab-mr-conformity-bot/internal/config"
-	"gitlab-mr-conformity-bot/internal/conformity/helper"
+	"gitlab-mr-conformity-bot/internal/conformity/helper/codeowners"
+	"gitlab-mr-conformity-bot/internal/conformity/helper/common"
 
 	gitlabapi "gitlab.com/gitlab-org/api/client-go"
 )
@@ -41,7 +42,7 @@ func (r *TitleRule) Severity() Severity {
 	return SeverityError
 }
 
-func (r *TitleRule) Check(mr *gitlabapi.MergeRequest, commits []*gitlabapi.Commit, approvals *int) (*RuleResult, error) {
+func (r *TitleRule) Check(mr *gitlabapi.MergeRequest, commits []*gitlabapi.Commit, approvals *common.Approvals, cos []*codeowners.PatternGroup, members []*gitlabapi.ProjectMember) (*RuleResult, error) {
 	ruleResult := &RuleResult{}
 
 	title := mr.Title
@@ -68,7 +69,7 @@ func (r *TitleRule) Check(mr *gitlabapi.MergeRequest, commits []*gitlabapi.Commi
 	}
 
 	// Conventional Commit Check
-	groups := helper.ParseHeader(title)
+	groups := common.ParseHeader(title)
 	if len(groups) != 7 {
 		ruleResult.Error = append(ruleResult.Error, fmt.Sprintf("Invalid Conventional Commit format in title: %q", title))
 		ruleResult.Suggestion = append(ruleResult.Suggestion, "Use format:  \n> ```  \n> type(scope?): description  \n> ```\n> Example:  \n`feat(auth): add login retry mechanism`\n\n")
@@ -109,14 +110,14 @@ func (r *TitleRule) Check(mr *gitlabapi.MergeRequest, commits []*gitlabapi.Commi
 
 	// Jira Issue Check
 	if len(r.config.Jira.Keys) > 0 {
-		if !helper.JiraRegex.MatchString(title) {
+		if !common.JiraRegex.MatchString(title) {
 			ruleResult.Error = append(ruleResult.Error, fmt.Sprintf("No Jira issue tag found in title: %q", title))
 			ruleResult.Suggestion = append(ruleResult.Suggestion, "Include a Jira tag like [ABC-123] or ABC-123  \n> **Example**:  \n> `fix(token): handle expired JWT refresh logic [SEC-456] `")
 		} else {
-			submatch := helper.JiraRegex.FindStringSubmatch(title)
+			submatch := common.JiraRegex.FindStringSubmatch(title)
 			jiraProject := submatch[1]
 
-			if !helper.Contains(r.config.Jira.Keys, jiraProject) {
+			if !common.Contains(r.config.Jira.Keys, jiraProject) {
 				ruleResult.Error = append(ruleResult.Error, fmt.Sprintf("Jira project %q is not valid. Allowed: %v", jiraProject, r.config.Jira.Keys))
 				ruleResult.Suggestion = append(ruleResult.Suggestion, fmt.Sprintf("Use a valid Jira key such as %s", r.config.Jira.Keys[0]))
 			}

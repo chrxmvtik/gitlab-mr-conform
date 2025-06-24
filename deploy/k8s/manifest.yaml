@@ -15,6 +15,7 @@ data:
     server:
       port: 8080
       host: "0.0.0.0"
+      log_level: "info"
     gitlab:
       # Set via environment variables:
       # GITLAB_MR_BOT_GITLAB_TOKEN
@@ -85,6 +86,7 @@ data:
             - "TASK"
       approvals:
         enabled: true
+        use_codeowners: false
         min_count: 2
       squash:
         enabled: true

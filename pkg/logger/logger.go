@@ -3,20 +3,59 @@ package logger
 import (
 	"log/slog"
 	"os"
+	"strings"
 )
 
 type Logger struct {
 	*slog.Logger
+	levelVar *slog.LevelVar
 }
 
 func New() *Logger {
-	// Create a JSON handler that writes to stdout
-	handler := slog.NewJSONHandler(os.Stdout, &slog.HandlerOptions{
-		Level: slog.LevelInfo,
-	})
-	log := slog.New(handler)
+	return NewWithLevel("INFO")
+}
 
-	return &Logger{Logger: log}
+func NewWithLevel(level string) *Logger {
+	// Create a LevelVar that can be changed dynamically
+	levelVar := &slog.LevelVar{}
+	levelVar.Set(parseLevel(level))
+
+	// Create a JSON handler that uses the dynamic level
+	handler := slog.NewJSONHandler(os.Stdout, &slog.HandlerOptions{
+		Level: levelVar,
+	})
+
+	log := slog.New(handler)
+	return &Logger{
+		Logger:   log,
+		levelVar: levelVar,
+	}
+}
+
+// SetLevel dynamically changes the log level
+func (l *Logger) SetLevel(level string) {
+	l.levelVar.Set(parseLevel(level))
+}
+
+// GetLevel returns the current log level
+func (l *Logger) GetLevel() slog.Level {
+	return l.levelVar.Level()
+}
+
+// parseLevel converts string to slog.Level
+func parseLevel(level string) slog.Level {
+	switch strings.ToUpper(level) {
+	case "DEBUG":
+		return slog.LevelDebug
+	case "INFO":
+		return slog.LevelInfo
+	case "WARN", "WARNING":
+		return slog.LevelWarn
+	case "ERROR":
+		return slog.LevelError
+	default:
+		return slog.LevelInfo
+	}
 }
 
 func (l *Logger) Debug(msg string, fields ...interface{}) {
@@ -25,6 +64,10 @@ func (l *Logger) Debug(msg string, fields ...interface{}) {
 
 func (l *Logger) Info(msg string, fields ...interface{}) {
 	l.Logger.Info(msg, toSlogArgs(fields...)...)
+}
+
+func (l *Logger) Warn(msg string, fields ...interface{}) {
+	l.Logger.Warn(msg, toSlogArgs(fields...)...)
 }
 
 func (l *Logger) Error(msg string, fields ...interface{}) {

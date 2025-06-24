@@ -1,7 +1,7 @@
 # Multi-stage build for Go bot application
 # Supports both AMD64 and ARM64 architectures
 
-FROM --platform=$BUILDPLATFORM golang:1.24-alpine AS build
+FROM --platform=$BUILDPLATFORM golang:1.24.4-alpine AS build
 
 # Set working directory
 WORKDIR /app

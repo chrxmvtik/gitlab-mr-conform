@@ -12,8 +12,9 @@ import (
 
 type Config struct {
 	Server struct {
-		Port int    `mapstructure:"port"`
-		Host string `mapstructure:"host"`
+		Port     int    `mapstructure:"port"`
+		Host     string `mapstructure:"host"`
+		LogLevel string `mapstructure:"log_level"`
 	} `mapstructure:"server"`
 
 	GitLab struct {
@@ -65,8 +66,9 @@ type CommitsConfig struct {
 }
 
 type ApprovalsConfig struct {
-	Enabled  bool `mapstructure:"enabled"`
-	MinCount int  `mapstructure:"min_count"`
+	Enabled       bool `mapstructure:"enabled"`
+	MinCount      int  `mapstructure:"min_count"`
+	UseCodeowners bool `mapstructure:"use_codeowners"`
 }
 
 type SquashConfig struct {
@@ -102,6 +104,7 @@ func Load() (*Config, error) {
 	viper.SetDefault("server.host", "0.0.0.0")
 	viper.SetDefault("gitlab.base_url", "https://gitlab.com")
 	viper.SetDefault("gitlab.insecure", false)
+	viper.SetDefault("log_level", "INFO")
 
 	if err := viper.ReadInConfig(); err != nil {
 		return nil, err
@@ -177,14 +180,14 @@ func (cl *ConfigLoader) loadRepositoryConfig(projectID interface{}) (*RulesConfi
 		return nil, fmt.Errorf("failed to unmarshal config: %w", err)
 	}
 
-	cl.logger.Info("Successfully loaded config from repository")
+	cl.logger.Debug("Successfully loaded config from repository")
 	return &repoConfig.Rules, nil
 }
 
 // selectConfig returns repository config if available, otherwise default config
 func (cl *ConfigLoader) selectConfig(repoConfig *RulesConfig) RulesConfig {
 	if repoConfig != nil {
-		cl.logger.Info("Using repository configuration")
+		cl.logger.Debug("Using repository configuration")
 		return *repoConfig
 	}
 
