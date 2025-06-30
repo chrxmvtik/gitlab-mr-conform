@@ -12,6 +12,7 @@
 - 🌱 **Branch Rules**: Validates naming conventions (e.g., `feature/`, `bugfix/`, `hotfix/`).
 - 📦 **Squash Commit Enforcement**: Checks MR squash settings when required.
 - 👥 **Approval Rules**: Ensures required reviewers have approved the MR.
+- 📁 **CODEOWNERS Integration**: Extends approver validation to include owners defined in the `.gitlab/CODEOWNERS` file using GitLab syntax and validation, enabling fine-grained and automated review enforcement based on file paths or directories. *[See CODEOWNERS docs](https://docs.gitlab.com/user/project/codeowners/)*.  *[See caveats](#caveats-codeowners)*.
 - 🛠️ **Extensible Rules Engine**: Easily add custom checks or adjust rule strictness per project.
 
 ### 📝 Automated Reporting
@@ -79,8 +80,8 @@ rules:
 
   approvals:
     enabled: false
-    use_codeowners: false
-    min_count: 1
+    use_codeowners: true # Use .gitlab/CODEOWNERS file to require approvals from owners
+    min_count: 1 # Checking just number of approvals, skipped if use_codeowners set to true
 
   squash:
     enabled: true
@@ -123,6 +124,23 @@ rules:
   >
   > Example:
   > `feat(auth): add login retry mechanism`
+
+#### ❌ **Approvals Required**
+
+📄 **Issue 1**: 
+
+| | Code owners | Approvals | Allowed approvers |
+| --- | --- | --- | --- |
+| ⬜ | <sub>Default</sub><br>``*`` | 0 of 1 | @root, @i-user-0-1737465646, @i-user-1-1737465646, @i-user-2-1737465646, @project_3_bot_d4ac3dc65e519f6b59b9f8272e89115e |
+| ⬜ | <sub>Default</sub><br>``/client/*test*`` | 0 of 1 | @root, @mr-bot |
+| ⬜ | <sub>Documentation</sub><br>``D\[ocumentation``<br>``addedfile`` | 0 of 1 | @root |
+| ⬜ | <sub>Documentation</sub><br>``README.md`` | 0 of 1 | @illa, @sheridan |
+
+>💡 **Tip**: Wait for required approvals before merging
+
+> **🚨 Syntax errors:**
+> - Line 13: error parsing owners:
+invalid owners ignored: [@@@approveuser @@randomgroup]
 
 ## 🐳 Deployment Options
 
@@ -195,3 +213,9 @@ make build
 - Adjust rule strictness in `config.yaml`
 - Review regex patterns for validation
 - Test rules against existing MRs
+
+## Caveats: CODEOWNERS
+
+While `CODEOWNERS` integration greatly improves automated enforcement of approvals, there are some important limitations to be aware of:
+
+- **Lack of group detection**: Using GitLab groups like `@group/frontend/members` is not currently supported. This would require admin-level privileges to resolve group membership and map groups to individual users.
