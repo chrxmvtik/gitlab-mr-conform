@@ -186,6 +186,7 @@ jobs:
     runs-on: gha-runner-scale-set
     needs:
       - version
+      - changelog
       - squash
     permissions:
       contents: write
