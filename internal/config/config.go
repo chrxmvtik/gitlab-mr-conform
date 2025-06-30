@@ -102,9 +102,9 @@ func Load() (*Config, error) {
 	// Set defaults
 	viper.SetDefault("server.port", 8080)
 	viper.SetDefault("server.host", "0.0.0.0")
+	viper.SetDefault("server.log_level", "INFO")
 	viper.SetDefault("gitlab.base_url", "https://gitlab.com")
 	viper.SetDefault("gitlab.insecure", false)
-	viper.SetDefault("log_level", "INFO")
 
 	if err := viper.ReadInConfig(); err != nil {
 		return nil, err

@@ -12,6 +12,7 @@ type Logger struct {
 }
 
 func New() *Logger {
+	// Defaults to INFO
 	return NewWithLevel("INFO")
 }
 
