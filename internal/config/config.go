@@ -6,6 +6,7 @@ import (
 	"gitlab-mr-conformity-bot/internal/gitlab"
 	"gitlab-mr-conformity-bot/pkg/logger"
 	"strings"
+	"time"
 
 	"github.com/spf13/viper"
 )
@@ -25,6 +26,29 @@ type Config struct {
 	} `mapstructure:"gitlab"`
 
 	Rules RulesConfig `mapstructure:"rules"`
+
+	Queue QueueConfig `mapstructure:"queue"`
+}
+
+// QueueConfig holds Redis queue configuration
+type QueueConfig struct {
+	Redis RedisConfig   `mapstructure:"redis"`
+	Queue QueueSettings `mapstructure:"queue"`
+}
+
+// RedisConfig holds Redis connection settings
+type RedisConfig struct {
+	Addr     string `mapstructure:"addr"`
+	Password string `mapstructure:"password"`
+	DB       int    `mapstructure:"db"`
+}
+
+// QueueSettings holds queue behavior settings
+type QueueSettings struct {
+	ProcessingInterval time.Duration `mapstructure:"processing_interval"`
+	MaxRetries         int           `mapstructure:"max_retries"`
+	LockTTL            time.Duration `mapstructure:"lock_ttl"`
+	Enabled            bool          `mapstructure:"enabled"`
 }
 
 type RulesConfig struct {

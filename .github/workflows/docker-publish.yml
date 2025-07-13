@@ -9,6 +9,7 @@ on:
   push:
     branches:
       - main
+      - feat/*
 
 env:
   # Use docker.io for Docker Hub if empty

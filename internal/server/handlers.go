@@ -3,7 +3,6 @@ package server
 import (
 	"io"
 	"net/http"
-	"slices"
 	"strconv"
 	"strings"
 
@@ -19,11 +18,11 @@ type Webhook struct {
 func (s *Server) handleHealth(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{
 		"status":  "ok",
-		"service": "gitlab-mr-conformity-bot",
+		"service": "gitlab-mr-conform",
 	})
 }
 
-func (s *Server) handleWebhook(c *gin.Context) {
+func (s *Server) handleWebhookNoQueue(c *gin.Context) {
 	wh := Webhook{
 		Secret:         s.config.GitLab.SecretToken,
 		EventsToAccept: []gitlabapi.EventType{gitlabapi.EventTypeMergeRequest, gitlabapi.EventTypeNote},
@@ -133,8 +132,4 @@ func (s *Server) handleStatus(c *gin.Context) {
 		"failures": result.Failures,
 		"summary":  result.Summary,
 	})
-}
-
-func isEventSubscribed(event gitlabapi.EventType, events []gitlabapi.EventType) bool {
-	return slices.Contains(events, event)
 }

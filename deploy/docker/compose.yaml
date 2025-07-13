@@ -1,28 +1,59 @@
-version: "3.8"
+---
+version: '3.8'
 
 services:
-  gitlab-mr-bot:
+  # Redis/Valkey for queue management
+  redis:
+    image: valkey/valkey:7-alpine
+    # Alternative: use Redis if you prefer
+    # image: redis:7-alpine
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    command: valkey-server --appendonly yes
+    healthcheck:
+      test: ["CMD", "valkey-cli", "ping"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    restart: unless-stopped
+
+  # GitLab MR Conform application
+  gitlab-mr-conform:
+    # Development
+    # build:
+    #   context: ../../
+    #   dockerfile: Dockerfile
     image: ghcr.io/chrxmvtik/gitlab-mr-conform:main
     ports:
-      - "80:8080"
+      - "8080:8080"
+    depends_on:
+      redis:
+        condition: service_healthy
     environment:
-      - GITLAB_MR_BOT_GITLAB_TOKEN=${GITLAB_TOKEN}
-      - GITLAB_MR_BOT_GITLAB_SECRET_TOKEN=${WEBHOOK_SECRET}
+      - GITLAB_MR_BOT_GITLAB_TOKEN=${GITLAB_MR_BOT_GITLAB_TOKEN}
+      - GITLAB_MR_BOT_GITLAB_SECRET_TOKEN=${GITLAB_MR_BOT_GITLAB_SECRET_TOKEN}
     volumes:
-      - ./config.yaml:/app/config.yaml:ro
+      - ./config.yaml:/home/nonroot/configs/config.yaml:ro
+      - ./logs:/app/logs
+    restart: unless-stopped
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:8080/health"]
-      interval: 10s
-      timeout: 5s
+      interval: 30s
+      timeout: 10s
       retries: 3
-      start_period: 30s
-    deploy:
-      replicas: 2
-      resources:
-        limits:
-          memory: 128M
-          cpus: "0.5"
-        reservations:
-          memory: 64M
-          cpus: "0.25"
+
+  # Redis Commander for queue monitoring (optional)
+  redis-commander:
+    image: rediscommander/redis-commander:latest
+    ports:
+      - "8081:8081"
+    depends_on:
+      - redis
+    environment:
+      - REDIS_HOSTS=local:redis:6379
     restart: unless-stopped
+
+volumes:
+  redis_data:

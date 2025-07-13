@@ -4,6 +4,7 @@ import (
 	"gitlab-mr-conformity-bot/internal/config"
 	"gitlab-mr-conformity-bot/internal/conformity"
 	"gitlab-mr-conformity-bot/internal/gitlab"
+	"gitlab-mr-conformity-bot/internal/queue"
 	"gitlab-mr-conformity-bot/internal/storage"
 	"gitlab-mr-conformity-bot/pkg/logger"
 
@@ -16,15 +17,17 @@ type Server struct {
 	checker      *conformity.Checker
 	storage      storage.Storage
 	logger       *logger.Logger
+	queueManager *queue.QueueManager
 }
 
-func NewServer(cfg *config.Config, client *gitlab.Client, checker *conformity.Checker, store storage.Storage, log *logger.Logger) *Server {
+func NewServer(cfg *config.Config, client *gitlab.Client, checker *conformity.Checker, store storage.Storage, log *logger.Logger, queueManager *queue.QueueManager) *Server {
 	return &Server{
 		config:       cfg,
 		gitlabClient: client,
 		checker:      checker,
 		storage:      store,
 		logger:       log,
+		queueManager: queueManager,
 	}
 }
 
@@ -40,7 +43,11 @@ func (s *Server) Router() *gin.Engine {
 	router.GET("/health", s.handleHealth)
 
 	// Webhook endpoint
-	router.POST("/webhook", s.handleWebhook)
+	if s.config.Queue.Queue.Enabled {
+		router.POST("/webhook", s.HandleWebhook)
+	} else {
+		router.POST("/webhook", s.handleWebhookNoQueue)
+	}
 
 	// Status endpoint
 	router.GET("/status/:project_id/:mr_id", s.handleStatus)
