@@ -9,7 +9,7 @@ import (
 // HeaderRegex is the regular expression used for Conventional Commits 1.0.0.
 var (
 	HeaderRegex = regexp.MustCompile(`^(\w*)(\(([^)]+)\))?(!)?:\s{1}(.*)($|\n{2})`)
-	JiraRegex   = regexp.MustCompile(`.*\s\[?([A-Z]+)-[1-9]\d*\]?.*`)
+	JiraRegex   = regexp.MustCompile(`.*\s\[?([A-Z0-9]+)-[1-9]\d*\]?.*`)
 )
 
 func ParseHeader(msg string) []string {
