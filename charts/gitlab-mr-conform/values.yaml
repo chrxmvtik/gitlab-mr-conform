@@ -89,16 +89,36 @@ tolerations: []
 
 affinity: {}
 
+# Environment variables prefixed with GITLAB_MR_BOT_, ie.:
+#  GITLAB_MR_BOT_QUEUE_REDIS_HOST: "valkey.valkey:6379"
+#  GITLAB_MR_BOT_QUEUE_REDIS_DATABASE: "0"
+
+env: {}
+
+# envFrom:
+#   - secretRef:
+#       name: mr-conform-secrets
+# Example content:
+# GITLAB_MR_BOT_GITLAB_TOKEN: "PAT"
+# GITLAB_MR_BOT_GITLAB_SECRET_TOKEN: "WEBHOOKSECRET"
+# GITLAB_MR_BOT_QUEUE_REDIS_PASSWORD: "REDISPASSWORD"
+
+envFrom: []
+
 # Secret configuration
 secret:
   # Set to false if you want to use an existing secret
   create: true
   # Name of the secret (if create is false, this should be the existing secret name)
+  # Keep in mind, that your own secret needs to match keys, which are:
+  # gitlab-token, webhook-secret and redis-password.
   name: ""
   # Secret data (base64 encoded values)
   data:
+    # Variables are optional, so you can skip for example redisPassword, if not used.
     gitlabToken: "" # base64 encoded GitLab token
     webhookSecret: "" # base64 encoded webhook secret
+    redisPassword: "" # base64 encoded Redis password, if queue enabled
 
 # Pod Security Context
 podSecurityContext: {}
@@ -135,6 +155,17 @@ config:
       # are set via environment variables from the secret
       base_url: "https://gitlab.com"
       insecure: false # defaults to false if not specified
+    queue:
+      enabled: false
+      redis:
+        host: "<your-redis-or-valkey-host>:6379"
+        # Note: set using GITLAB_MR_BOT_QUEUE_REDIS_PASSWORD variable
+        password: "redispassword"
+        db: "0"
+      queue:
+        processing_interval: 100ms
+        max_retries: 3
+        lock_ttl: 10s
     rules:
       title:
         enabled: true

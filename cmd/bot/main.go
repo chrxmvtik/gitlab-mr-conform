@@ -34,15 +34,15 @@ func main() {
 
 	// Initialize Redis queue manager
 	queueConfig := &queue.Config{
-		RedisAddr:          cfg.Queue.Redis.Addr,     //getEnvOrDefault("REDIS_ADDR", "localhost:6379"), // cfg.
-		RedisPassword:      cfg.Queue.Redis.Password, //os.Getenv("REDIS_PASSWORD"),
-		RedisDB:            cfg.Queue.Redis.DB,       //0,
+		RedisHost:          cfg.Queue.Redis.Host,
+		RedisPassword:      cfg.Queue.Redis.Password,
+		RedisDB:            cfg.Queue.Redis.DB,
 		QueuePrefix:        "gitlab:mr:queue",
 		LockPrefix:         "gitlab:mr:lock",
 		ProcessingPrefix:   "gitlab:mr:processing",
-		DefaultLockTTL:     10 * time.Second,
-		MaxRetries:         3,
-		ProcessingInterval: 1 * time.Second,
+		DefaultLockTTL:     cfg.Queue.Queue.LockTTL,            //10 * time.Second,
+		MaxRetries:         cfg.Queue.Queue.MaxRetries,         //3,
+		ProcessingInterval: cfg.Queue.Queue.ProcessingInterval, // 100 * time.Milisecond,
 	}
 
 	queueManager := queue.NewQueueManager(queueConfig, log)

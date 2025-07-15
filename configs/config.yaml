@@ -10,10 +10,16 @@ gitlab:
   base_url: "https://gitlab.com"
 
 queue:
+  enabled: false
   redis:
-    addr: "addr"
-    password: "pw"
-    db: 0
+    host: "<your-redis-or-valkey-host>:6379"
+    # Set using GITLAB_MR_BOT_QUEUE_REDIS_PASSWORD variable
+    password: "redispassword"
+    db: "0"
+  queue:
+    processing_interval: 100ms
+    max_retries: 3
+    lock_ttl: 10s
 
 rules:
   title:

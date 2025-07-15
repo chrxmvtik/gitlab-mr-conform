@@ -38,16 +38,38 @@ spec:
               containerPort: {{ .Values.service.targetPort }}
               protocol: TCP
           env:
+            {{- with .Values.secret }}
+            {{- if .create }}
             - name: GITLAB_MR_BOT_GITLAB_TOKEN
               valueFrom:
                 secretKeyRef:
-                  name: {{ include "gitlab-mr-conform.secretName" . }}
+                  name: {{ include "gitlab-mr-conform.secretName" $ }}
                   key: gitlab-token
+                  optional: true
             - name: GITLAB_MR_BOT_GITLAB_SECRET_TOKEN
               valueFrom:
                 secretKeyRef:
-                  name: {{ include "gitlab-mr-conform.secretName" . }}
+                  name: {{ include "gitlab-mr-conform.secretName" $ }}
                   key: webhook-secret
+                  optional: true
+            - name: GITLAB_MR_BOT_QUEUE_REDIS_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "gitlab-mr-conform.secretName" $ }}
+                  key: redis-password
+                  optional: true
+            {{- end }}
+            {{- end }}
+            {{- range $name, $value := .Values.env }}
+            - name: {{ $name }}
+              value: {{ quote $value }}
+            {{- end }}
+          {{- if gt (len .Values.envFrom) 0 }}
+          envFrom:
+            {{- with .Values.envFrom }}
+            {{- toYaml . | nindent 12 }}
+            {{- end }}
+          {{- end }}
           volumeMounts:
             - name: config
               mountPath: /home/nonroot/configs/config.yaml

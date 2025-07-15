@@ -48,7 +48,7 @@ type QueueManager struct {
 
 // Config holds configuration for the queue manager
 type Config struct {
-	RedisAddr          string
+	RedisHost          string
 	RedisPassword      string
 	RedisDB            int
 	QueuePrefix        string
@@ -86,7 +86,7 @@ func NewQueueManager(config *Config, log *logger.Logger) *QueueManager {
 	}
 
 	rdb := redis.NewClient(&redis.Options{
-		Addr:     config.RedisAddr,
+		Addr:     config.RedisHost,
 		Password: config.RedisPassword,
 		DB:       config.RedisDB,
 	})

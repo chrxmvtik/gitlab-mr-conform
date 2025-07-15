@@ -43,7 +43,8 @@ func (s *Server) Router() *gin.Engine {
 	router.GET("/health", s.handleHealth)
 
 	// Webhook endpoint
-	if s.config.Queue.Queue.Enabled {
+
+	if s.config.Queue.Enabled {
 		router.POST("/webhook", s.HandleWebhook)
 	} else {
 		router.POST("/webhook", s.handleWebhookNoQueue)
