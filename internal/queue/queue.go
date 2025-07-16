@@ -133,11 +133,9 @@ func (qm *QueueManager) EnqueueWebhook(c context.Context, projectID, mergeReques
 	// Set queue expiration (cleanup after 24 hours if not processed)
 	if err := qm.redis.Expire(c, queueKey, 24*time.Hour).Err(); err != nil {
 		qm.log.Warn("Failed to set queue expiration", "error", err)
-		//log.Printf("Warning: failed to set queue expiration: %v", err)
 	}
 
 	qm.log.Info("Enqueued webhook job", "jobId", jobID, "projectId", projectID, "mrId", mergeRequestIID)
-	//log.Printf("Enqueued webhook job %s for MR %s:%s", jobID, projectID, mergeRequestIID)
 	return jobID, nil
 }
 
@@ -159,7 +157,6 @@ func (qm *QueueManager) ProcessMRQueue(c context.Context, projectID, mergeReques
 	defer func() {
 		if err := qm.releaseLock(c, lockKey); err != nil {
 			qm.log.Error("Error releasing lock", "error", err)
-			//log.Printf("Error releasing lock: %v", err)
 		}
 	}()
 
@@ -177,25 +174,20 @@ func (qm *QueueManager) ProcessMRQueue(c context.Context, projectID, mergeReques
 
 		// Mark job as processing
 		if err := qm.markJobAsProcessing(c, job); err != nil {
-			//log.Printf("Warning: failed to mark job as processing: %v", err)
-			qm.log.Warn("Failed to mark job as processing", "jobId", job.ID, "error", err)
+			qm.log.Warn("Failed to mark job as processing", "jobId", job.ID, "projectId", projectID, "mrId", mergeRequestIID, "error", err)
 		}
 
 		// Execute the job
 		if err := processor.ProcessJob(c, job); err != nil {
-			//log.Printf("Error processing job %s: %v", job.ID, err)
-			qm.log.Error("Error processing job", "jobId", job.ID, "error", err)
+			qm.log.Error("Error processing job", "jobId", job.ID, "projectId", projectID, "mrId", mergeRequestIID, "error", err)
 			if err := qm.handleJobFailure(c, job, queueKey, err); err != nil {
-				//log.Printf("Error handling job failure: %v", err)
-				qm.log.Error("Error handling job", "error", err)
+				qm.log.Error("Error handling job", "jobId", job.ID, "projectId", projectID, "mrId", mergeRequestIID, "error", err)
 			}
 		} else {
-			//log.Printf("Successfully processed job %s", job.ID)
-			qm.log.Info("Successfully processed job", "jobId", job.ID)
+			qm.log.Info("Successfully processed job", "jobId", job.ID, "projectId", projectID, "mrId", mergeRequestIID)
 			// Remove from processing set on success
 			if err := qm.removeJobFromProcessing(c, job); err != nil {
-				//log.Printf("Warning: failed to remove job from processing: %v", err)
-				qm.log.Warn("Failed to remove job from processing", "jobId", job.ID, "error", err)
+				qm.log.Warn("Failed to remove job from processing", "jobId", job.ID, "projectId", projectID, "mrId", mergeRequestIID, "error", err)
 			}
 		}
 	}
@@ -206,20 +198,17 @@ func (qm *QueueManager) ProcessMRQueue(c context.Context, projectID, mergeReques
 // StartProcessor starts the queue processor that continuously processes jobs
 func (qm *QueueManager) StartProcessor(c context.Context, processor JobProcessor) {
 	if qm.isProcessing {
-		//log.Println("Queue processor is already running")
 		qm.log.Info("Queue processor is already running")
 		return
 	}
 
 	qm.isProcessing = true
-	//log.Println("Starting GitLab MR queue processor...")
 	qm.log.Info("Starting GitLab MR queue processor")
 
 	go func() {
 		defer func() {
 			qm.isProcessing = false
 			qm.log.Info("Queue processor stopped")
-			//log.Println("Queue processor stopped")
 		}()
 
 		ticker := time.NewTicker(qm.processingInterval)
@@ -233,7 +222,6 @@ func (qm *QueueManager) StartProcessor(c context.Context, processor JobProcessor
 				return
 			case <-ticker.C:
 				if err := qm.processAllQueues(c, processor); err != nil {
-					//log.Printf("Error processing queues: %v", err)
 					qm.log.Error("Error processing queues", "error", err)
 				}
 			}
@@ -247,7 +235,6 @@ func (qm *QueueManager) StopProcessor() {
 		return
 	}
 
-	//log.Println("Stopping GitLab MR queue processor...")
 	qm.log.Info("Stopping GitLab MR queue processor")
 	close(qm.stopChan)
 }
@@ -275,7 +262,6 @@ func (qm *QueueManager) GetQueueStats(c context.Context) (*QueueStats, error) {
 
 			jobCount, err := qm.redis.LLen(c, queueKey).Result()
 			if err != nil {
-				//log.Printf("Warning: failed to get queue length for %s: %v", queueKey, err)
 				qm.log.Warn("Failed to get queue length", "key", queueKey, "error", err)
 				continue
 			}
@@ -412,8 +398,7 @@ func (qm *QueueManager) handleJobFailure(c context.Context, job *WebhookJob, que
 
 	if job.Attempts < job.MaxAttempts {
 		// Requeue the job for retry
-		//log.Printf("Retrying job %s (attempt %d/%d)", job.ID, job.Attempts, job.MaxAttempts)
-		qm.log.Info("Retrying job", "jobId", job.ID, "attempt", job.Attempts, "maxAttempts", job.MaxAttempts)
+		qm.log.Info("Retrying job", "jobId", job.ID, "projectId", job.ProjectID, "mrId", job.MergeRequestIID, "attempt", job.Attempts, "maxAttempts", job.MaxAttempts)
 		jobData, err := json.Marshal(job)
 		if err != nil {
 			return fmt.Errorf("failed to marshal job for retry: %w", err)
@@ -423,7 +408,7 @@ func (qm *QueueManager) handleJobFailure(c context.Context, job *WebhookJob, que
 
 	// Job has exceeded max attempts, log and remove from processing
 	//log.Printf("Job %s failed after %d attempts: %v", job.ID, job.MaxAttempts, jobErr)
-	qm.log.Info("Job failed after max attempts", "jobId", job.ID, "maxAttempts", job.MaxAttempts, "error", jobErr)
+	qm.log.Info("Job failed after max attempts", "jobId", job.ID, "projectId", job.ProjectID, "mrId", job.MergeRequestIID, "maxAttempts", job.MaxAttempts, "error", jobErr)
 	return qm.removeJobFromProcessing(c, job)
 }
 
@@ -448,7 +433,6 @@ func (qm *QueueManager) processAllQueues(c context.Context, processor JobProcess
 
 			if queueLength > 0 {
 				if err := qm.ProcessMRQueue(c, projectID, mergeRequestIID, processor); err != nil {
-					//log.Printf("Error processing MR queue %s:%s: %v", projectID, mergeRequestIID, err)
 					qm.log.Info("Error processing MR queue", "projectId", projectID, "mrId", mergeRequestIID, "error", err)
 				}
 			}

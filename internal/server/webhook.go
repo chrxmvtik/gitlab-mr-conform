@@ -63,8 +63,8 @@ func (s *Server) HandleWebhook(c *gin.Context) {
 	switch parsedEvent := parsedEvent.(type) {
 	case *gitlabapi.MergeEvent:
 		s.logger.Info("Processing merge request event",
-			"project_id", parsedEvent.Project.ID,
-			"mr_id", parsedEvent.ObjectAttributes.IID,
+			"projectId", parsedEvent.Project.ID,
+			"mrId", parsedEvent.ObjectAttributes.IID,
 			"action", parsedEvent.ObjectAttributes.Action)
 
 		pID := strconv.Itoa(parsedEvent.Project.ID)
@@ -82,11 +82,8 @@ func (s *Server) HandleWebhook(c *gin.Context) {
 
 }
 
-// TODO: change print to logger
 // ProcessJob implements the JobProcessor interface
 func (s *Server) ProcessJob(c context.Context, job *queue.WebhookJob) error {
-	// log.Printf("Processing job %s: %s webhook for MR %d:%d",
-	// 	job.ID, job.WebhookType, job.ProjectID, job.MergeRequestIID)
 	s.logger.Info("Processing webhook for MR", "jobId", job.ID, "webhookType", job.WebhookType, "projectId", job.ProjectID, "mrId", job.MergeRequestIID)
 
 	mrID, err := strconv.Atoi(job.MergeRequestIID)
@@ -98,17 +95,20 @@ func (s *Server) ProcessJob(c context.Context, job *queue.WebhookJob) error {
 	result, err := s.checker.CheckMergeRequest(job.ProjectID, mrID)
 	if err != nil {
 		s.logger.Error("Failed to check merge request",
-			"project_id", job.ProjectID,
-			"mr_id", job.MergeRequestIID,
+			"jobId", job.ID,
+			"projectId", job.ProjectID,
+			"mrId", job.MergeRequestIID,
 			"error", err)
-		//c.JSON(http.StatusOK, gin.H{"error": "Check failed"})
 		return err
 	}
 
 	// Post discussion with results
 	if err := s.gitlabClient.CreateUpdateMergeRequestDiscussion(job.ProjectID, mrID, result.Summary, result.Passed); err != nil {
-		s.logger.Error("Failed to post discussion", "error", err)
-		//c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to post discussion"})
+		s.logger.Error("Failed to post discussion",
+			"jobId", job.ID,
+			"projectId", job.ProjectID,
+			"mrId", job.MergeRequestIID,
+			"error", err)
 		return err
 	}
 
@@ -119,15 +119,13 @@ func (s *Server) ProcessJob(c context.Context, job *queue.WebhookJob) error {
 	}
 
 	if err := s.gitlabClient.SetCommitStatus(job.ProjectID, job.Payload.ObjectAttributes.LastCommit.ID, status, "MR Conformity Check"); err != nil {
-		s.logger.Error("Failed to set commit status", "error", err)
+		s.logger.Error("Failed to set commit status",
+			"jobId", job.ID,
+			"projectId", job.ProjectID,
+			"mrId", job.MergeRequestIID,
+			"error", err)
 		return err
 	}
-
-	// c.JSON(http.StatusOK, gin.H{
-	// 	"message":  "Processed successfully",
-	// 	"passed":   result.Passed,
-	// 	"failures": len(result.Failures),
-	// })
 
 	return nil
 }

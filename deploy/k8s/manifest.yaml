@@ -1,1 +1,2 @@
 # Use helm template to render full manifest
+# helm template gitlab-mr-conform ./charts/gitlab-mr-conform --values <your_values_file.yaml> -n gitlab-mr-conform
