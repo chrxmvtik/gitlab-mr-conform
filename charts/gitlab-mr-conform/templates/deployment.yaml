@@ -39,7 +39,7 @@ spec:
               protocol: TCP
           env:
             {{- with .Values.secret }}
-            {{- if .create }}
+            {{- if or .create .name }}
             - name: GITLAB_MR_BOT_GITLAB_TOKEN
               valueFrom:
                 secretKeyRef:
