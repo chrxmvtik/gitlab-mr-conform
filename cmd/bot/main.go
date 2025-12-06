@@ -23,6 +23,7 @@ func main() {
 	log := logger.New()
 
 	log.Info("Starting bot", "version", Version)
+	log.Info("*** GitLab MR Conform with Asana Description Validation - Build 2025-12-05 ***")
 
 	// Load configuration
 	cfg, err := config.Load()
@@ -68,8 +69,12 @@ func main() {
 	c, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
-	// Start the background job processor
-	go srv.StartProcessor(c)
+	// Start the background job processor only if queue is enabled
+	if cfg.Queue.Enabled {
+		go srv.StartProcessor(c)
+	} else {
+		log.Info("Queue processing disabled, webhooks will be processed synchronously")
+	}
 
 	// Start server
 	httpServer := &http.Server{
