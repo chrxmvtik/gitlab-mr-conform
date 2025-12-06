@@ -1,6 +1,7 @@
 package rules
 
 import (
+	"context"
 	"fmt"
 	"regexp"
 	"strings"
@@ -8,12 +9,14 @@ import (
 	"gitlab-mr-conformity-bot/internal/config"
 	"gitlab-mr-conformity-bot/internal/conformity/helper/codeowners"
 	"gitlab-mr-conformity-bot/internal/conformity/helper/common"
+	"gitlab-mr-conformity-bot/internal/conformity/validator"
 
 	gitlabapi "gitlab.com/gitlab-org/api/client-go"
 )
 
 type TitleRule struct {
-	config config.TitleConfig
+	config           config.TitleConfig
+	ticketValidators *validator.ValidatorManager
 }
 
 func NewTitleRule(cfg interface{}) *TitleRule {
@@ -31,7 +34,10 @@ func NewTitleRule(cfg interface{}) *TitleRule {
 			},
 		}
 	}
-	return &TitleRule{config: titleCfg}
+	return &TitleRule{
+		config:           titleCfg,
+		ticketValidators: validator.BuildTicketValidators(titleCfg.Jira, titleCfg.Asana),
+	}
 }
 
 func (r *TitleRule) Name() string {
@@ -108,8 +114,26 @@ func (r *TitleRule) Check(mr *gitlabapi.MergeRequest, commits []*gitlabapi.Commi
 		}
 	}
 
-	// Jira Issue Check
-	if len(r.config.Jira.Keys) > 0 {
+	// Ticket validation (Jira, Asana, etc.)
+	if r.ticketValidators.HasValidators() {
+		ctx := context.Background()
+		result := r.ticketValidators.ValidateMessage(ctx, title)
+
+		if result.AllMissing {
+			ruleResult.Error = append(ruleResult.Error, fmt.Sprintf("No ticket reference found in title: %q", title))
+			ruleResult.Suggestion = append(ruleResult.Suggestion, "Include a ticket reference (e.g., Jira: [ABC-123], Asana: PROJ-1234567890123456)  \n> **Example**:  \n> `fix(token): handle expired JWT refresh logic [SEC-456]`")
+		} else if !result.AnyValid {
+			for name, valResult := range result.Results {
+				if !valResult.Valid {
+					ruleResult.Error = append(ruleResult.Error, fmt.Sprintf("%s: %s", name, valResult.Error))
+					ruleResult.Suggestion = append(ruleResult.Suggestion, "Use a valid ticket reference from one of the configured systems")
+				}
+			}
+		}
+	}
+
+	// Legacy Jira validation for backward compatibility
+	if len(r.config.Jira.Keys) > 0 && !r.ticketValidators.HasValidators() {
 		if !common.JiraRegex.MatchString(title) {
 			ruleResult.Error = append(ruleResult.Error, fmt.Sprintf("No Jira issue tag found in title: %q", title))
 			ruleResult.Suggestion = append(ruleResult.Suggestion, "Include a Jira tag like [ABC-123] or ABC-123  \n> **Example**:  \n> `fix(token): handle expired JWT refresh logic [SEC-456] `")

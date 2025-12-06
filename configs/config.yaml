@@ -39,10 +39,19 @@ rules:
       - "WIP"
       - "TODO"
       - "FIXME"
+    # Jira ticket system integration
     jira:
       keys:
         - PROJ
         - JIRA
+    # Asana ticket system integration (optional)
+    # Supports OR logic: pass if either Jira OR Asana has a valid reference
+    asana:
+      keys:
+        - DESIGN
+        - MARKETING
+      validate_existence: false  # Set to true to verify tasks exist via Asana API
+      api_token: ""  # DO NOT put token here! Use env var: GITLAB_MR_BOT_RULES_TITLE_ASANA_API_TOKEN
 
   description:
     enabled: false
@@ -67,8 +76,16 @@ rules:
         - "release"
       scopes:
         - ".*"
+    # Jira ticket system integration
     jira:
-      keys: []
+      keys:
+        - PROJ
+    # Asana ticket system integration (optional)
+    asana:
+      keys:
+        - DESIGN
+      validate_existence: false
+      api_token: ""  # DO NOT put token here! Use env var: GITLAB_MR_BOT_RULES_COMMITS_ASANA_API_TOKEN
 
   approvals:
     enabled: true
