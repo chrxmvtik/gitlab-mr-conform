@@ -23,7 +23,6 @@ func main() {
 	log := logger.New()
 
 	log.Info("Starting bot", "version", Version)
-	log.Info("*** GitLab MR Conform with Asana Description Validation - Build 2025-12-05 ***")
 
 	// Load configuration
 	cfg, err := config.Load()
