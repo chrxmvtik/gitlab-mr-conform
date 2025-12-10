@@ -132,7 +132,7 @@ func (r *TitleRule) Check(mr *gitlabapi.MergeRequest, commits []*gitlabapi.Commi
 		}
 	}
 
-	// Legacy Jira validation for backward compatibility
+	// Jira validation (standalone mode when no validators configured)
 	if len(r.config.Jira.Keys) > 0 && !r.ticketValidators.HasValidators() {
 		if !common.JiraRegex.MatchString(title) {
 			ruleResult.Error = append(ruleResult.Error, fmt.Sprintf("No Jira issue tag found in title: %q", title))
