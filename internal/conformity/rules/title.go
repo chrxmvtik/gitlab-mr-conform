@@ -132,22 +132,6 @@ func (r *TitleRule) Check(mr *gitlabapi.MergeRequest, commits []*gitlabapi.Commi
 		}
 	}
 
-	// Jira validation (standalone mode when no validators configured)
-	if len(r.config.Jira.Keys) > 0 && !r.ticketValidators.HasValidators() {
-		if !common.JiraRegex.MatchString(title) {
-			ruleResult.Error = append(ruleResult.Error, fmt.Sprintf("No Jira issue tag found in title: %q", title))
-			ruleResult.Suggestion = append(ruleResult.Suggestion, "Include a Jira tag like [ABC-123] or ABC-123  \n> **Example**:  \n> `fix(token): handle expired JWT refresh logic [SEC-456] `")
-		} else {
-			submatch := common.JiraRegex.FindStringSubmatch(title)
-			jiraProject := submatch[1]
-
-			if !common.Contains(r.config.Jira.Keys, jiraProject) {
-				ruleResult.Error = append(ruleResult.Error, fmt.Sprintf("Jira project %q is not valid. Allowed: %v", jiraProject, r.config.Jira.Keys))
-				ruleResult.Suggestion = append(ruleResult.Suggestion, fmt.Sprintf("Use a valid Jira key such as %s", r.config.Jira.Keys[0]))
-			}
-		}
-	}
-
 	if len(ruleResult.Error) != 0 {
 		return &RuleResult{
 			Passed:     false,
