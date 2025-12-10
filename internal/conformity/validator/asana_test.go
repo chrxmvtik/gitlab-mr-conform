@@ -9,7 +9,7 @@ import (
 )
 
 func TestAsanaValidator_ContainsTicket(t *testing.T) {
-	validator := NewAsanaValidator(config.AsanaValidatorConfig{})
+	validator := NewAsanaValidator(config.AsanaValidatorConfig{}, "")
 
 	tests := []struct {
 		name     string
@@ -35,7 +35,7 @@ func TestAsanaValidator_ContainsTicket(t *testing.T) {
 }
 
 func TestAsanaValidator_ExtractTicket_Prefix(t *testing.T) {
-	validator := NewAsanaValidator(config.AsanaValidatorConfig{})
+	validator := NewAsanaValidator(config.AsanaValidatorConfig{}, "")
 
 	tests := []struct {
 		name           string
@@ -72,7 +72,7 @@ func TestAsanaValidator_ExtractTicket_Prefix(t *testing.T) {
 }
 
 func TestAsanaValidator_ExtractTicket_URL(t *testing.T) {
-	validator := NewAsanaValidator(config.AsanaValidatorConfig{})
+	validator := NewAsanaValidator(config.AsanaValidatorConfig{}, "")
 
 	tests := []struct {
 		name           string
@@ -103,7 +103,7 @@ func TestAsanaValidator_ValidateTicket_PrefixValidation(t *testing.T) {
 	validator := NewAsanaValidator(config.AsanaValidatorConfig{
 		Keys:              []string{"DESIGN", "MARKETING"},
 		ValidateExistence: false,
-	})
+	}, "")
 
 	tests := []struct {
 		name        string
@@ -151,8 +151,7 @@ func TestAsanaValidator_ValidateTicket_WithAPI(t *testing.T) {
 	validator := NewAsanaValidator(config.AsanaValidatorConfig{
 		Keys:              []string{"DESIGN"},
 		ValidateExistence: true,
-		APIToken:          "test-token",
-	})
+	}, "test-token")
 
 	validator.httpClient = server.Client()
 	validator.baseURL = server.URL
@@ -195,8 +194,7 @@ func TestAsanaValidator_ValidateTicket_APIDisabled(t *testing.T) {
 	validator := NewAsanaValidator(config.AsanaValidatorConfig{
 		Keys:              []string{"DESIGN"},
 		ValidateExistence: false,
-		APIToken:          "",
-	})
+	}, "")
 
 	ticket := &TicketInfo{
 		ProjectKey: "DESIGN",
@@ -210,7 +208,7 @@ func TestAsanaValidator_ValidateTicket_APIDisabled(t *testing.T) {
 }
 
 func TestAsanaValidator_ValidateTicket_NilInfo(t *testing.T) {
-	validator := NewAsanaValidator(config.AsanaValidatorConfig{Keys: []string{"DESIGN"}})
+	validator := NewAsanaValidator(config.AsanaValidatorConfig{Keys: []string{"DESIGN"}}, "")
 	result := validator.ValidateTicket(context.Background(), nil)
 	if result.Found {
 		t.Error("expected Found=false for nil ticket info")

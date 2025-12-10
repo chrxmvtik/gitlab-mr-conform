@@ -17,14 +17,16 @@ var (
 
 type AsanaValidator struct {
 	config     config.AsanaValidatorConfig
+	apiToken   string
 	httpClient *http.Client
 	baseURL    string
 }
 
-func NewAsanaValidator(cfg config.AsanaValidatorConfig) *AsanaValidator {
+func NewAsanaValidator(cfg config.AsanaValidatorConfig, apiToken string) *AsanaValidator {
 	return &AsanaValidator{
-		config:  cfg,
-		baseURL: "https://app.asana.com",
+		config:   cfg,
+		apiToken: apiToken,
+		baseURL:  "https://app.asana.com",
 		httpClient: &http.Client{
 			Timeout: 5 * time.Second,
 		},
@@ -82,7 +84,7 @@ func (v *AsanaValidator) ValidateTicket(ctx context.Context, info *TicketInfo) V
 		}
 	}
 
-	if v.config.ValidateExistence && v.config.APIToken != "" {
+	if v.config.ValidateExistence && v.apiToken != "" {
 		exists, err := v.checkTaskExists(ctx, info.TicketID)
 		if err != nil {
 			return ValidationResult{
@@ -117,7 +119,7 @@ func (v *AsanaValidator) checkTaskExists(ctx context.Context, taskID string) (bo
 		return false, err
 	}
 
-	req.Header.Set("Authorization", "Bearer "+v.config.APIToken)
+	req.Header.Set("Authorization", "Bearer "+v.apiToken)
 	req.Header.Set("Accept", "application/json")
 
 	resp, err := v.httpClient.Do(req)

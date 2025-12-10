@@ -19,7 +19,7 @@ type TitleRule struct {
 	ticketValidators *validator.ValidatorManager
 }
 
-func NewTitleRule(cfg interface{}) *TitleRule {
+func NewTitleRule(cfg interface{}, asanaToken string) *TitleRule {
 	titleCfg, ok := cfg.(config.TitleConfig)
 	if !ok {
 		titleCfg = config.TitleConfig{
@@ -36,7 +36,7 @@ func NewTitleRule(cfg interface{}) *TitleRule {
 	}
 	return &TitleRule{
 		config:           titleCfg,
-		ticketValidators: validator.BuildTicketValidators(titleCfg.Jira, titleCfg.Asana),
+		ticketValidators: validator.BuildTicketValidators(titleCfg.Jira, titleCfg.Asana, asanaToken),
 	}
 }
 

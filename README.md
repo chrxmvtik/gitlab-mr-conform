@@ -41,8 +41,7 @@ export GITLAB_MR_BOT_GITLAB_TOKEN="your_gitlab_token"
 export GITLAB_MR_BOT_GITLAB_SECRET_TOKEN="your_webhook_secret"
 
 # Optional: For Asana API validation (if validate_existence: true)
-export GITLAB_MR_BOT_RULES_TITLE_ASANA_API_TOKEN="your_asana_token"
-export GITLAB_MR_BOT_RULES_COMMITS_ASANA_API_TOKEN="your_asana_token"
+export GITLAB_MR_BOT_ASANA_API_TOKEN="your_asana_token"
 ```
 
 > **Security Note**: Never commit API tokens to your repository. Always use environment variables for sensitive credentials.
@@ -70,7 +69,6 @@ rules:
     asana:
       keys: ["DESIGN", "MARKETING"]
       validate_existence: false  # Set to true to verify tasks exist via Asana API
-      # api_token is read from environment variable (see above)
 
   description:
     enabled: true
@@ -92,7 +90,6 @@ rules:
     asana:
       keys: ["DESIGN"]
       validate_existence: false
-      # api_token is read from environment variable
 
   approvals:
     enabled: false
@@ -129,7 +126,7 @@ The tool supports both **Jira** and **Asana** for issue tracking validation:
 **Security:**
 - **Asana API tokens are personal access tokens with full account access** - treat them like passwords
 - **NEVER commit tokens to your repository** or config files
-- Always use environment variables: `GITLAB_MR_BOT_RULES_TITLE_ASANA_API_TOKEN` and `GITLAB_MR_BOT_RULES_COMMITS_ASANA_API_TOKEN`
+- Always use environment variable: `GITLAB_MR_BOT_ASANA_API_TOKEN`
 - Use secrets management (Kubernetes Secrets, Docker Secrets, AWS Secrets Manager, etc.) in production
 - Consider using a dedicated Asana service account with limited access instead of a personal token
 - Rotate tokens regularly and immediately revoke if compromised
@@ -192,8 +189,7 @@ invalid owners ignored: [@@@approveuser @@randomgroup]
 docker run -p 8080:8080 \
   -e GITLAB_MR_BOT_GITLAB_TOKEN=$GITLAB_TOKEN \
   -e GITLAB_MR_BOT_GITLAB_SECRET_TOKEN=$WEBHOOK_SECRET \
-  -e GITLAB_MR_BOT_RULES_TITLE_ASANA_API_TOKEN=$ASANA_TOKEN \
-  -e GITLAB_MR_BOT_RULES_COMMITS_ASANA_API_TOKEN=$ASANA_TOKEN \
+  -e GITLAB_MR_BOT_ASANA_API_TOKEN=$ASANA_TOKEN \
   ghcr.io/chrxmvtik/gitlab-mr-conform:latest
 ```
 

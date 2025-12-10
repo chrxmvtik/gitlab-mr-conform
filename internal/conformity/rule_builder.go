@@ -6,11 +6,15 @@ import (
 )
 
 // RuleBuilder handles building rules from configuration
-type RuleBuilder struct{}
+type RuleBuilder struct {
+	asanaAPIToken string
+}
 
 // NewRuleBuilder creates a new rule builder
-func NewRuleBuilder() *RuleBuilder {
-	return &RuleBuilder{}
+func NewRuleBuilder(asanaToken string) *RuleBuilder {
+	return &RuleBuilder{
+		asanaAPIToken: asanaToken,
+	}
 }
 
 // BuildRules creates rules based on the provided config
@@ -19,16 +23,16 @@ func (rb *RuleBuilder) BuildRules(rulesConfig config.RulesConfig) []rules.Rule {
 
 	// Conditionally initialize rules based on configuration
 	if rulesConfig.Title.Enabled {
-		rulesList = append(rulesList, rules.NewTitleRule(rulesConfig.Title))
+		rulesList = append(rulesList, rules.NewTitleRule(rulesConfig.Title, rb.asanaAPIToken))
 	}
 	if rulesConfig.Description.Enabled {
-		rulesList = append(rulesList, rules.NewDescriptionRule(rulesConfig.Description))
+		rulesList = append(rulesList, rules.NewDescriptionRule(rulesConfig.Description, rb.asanaAPIToken))
 	}
 	if rulesConfig.Branch.Enabled {
 		rulesList = append(rulesList, rules.NewBranchRule(rulesConfig.Branch))
 	}
 	if rulesConfig.Commits.Enabled {
-		rulesList = append(rulesList, rules.NewCommitsRule(rulesConfig.Commits))
+		rulesList = append(rulesList, rules.NewCommitsRule(rulesConfig.Commits, rb.asanaAPIToken))
 	}
 	if rulesConfig.Approvals.Enabled {
 		rulesList = append(rulesList, rules.NewApprovalsRule(rulesConfig.Approvals))

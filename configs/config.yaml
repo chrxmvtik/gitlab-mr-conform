@@ -9,6 +9,11 @@ gitlab:
   # GITLAB_MR_BOT_GITLAB_SECRET_TOKEN
   base_url: "https://gitlab.com"
 
+asana:
+  # Set via environment variable:
+  # GITLAB_MR_BOT_ASANA_API_TOKEN
+  api_token: ""
+
 queue:
   enabled: false
   redis:
@@ -51,7 +56,6 @@ rules:
         - DESIGN
         - MARKETING
       validate_existence: false  # Set to true to verify tasks exist via Asana API
-      api_token: ""  # DO NOT put token here! Use env var: GITLAB_MR_BOT_RULES_TITLE_ASANA_API_TOKEN
 
   description:
     enabled: false
@@ -85,7 +89,6 @@ rules:
       keys:
         - DESIGN
       validate_existence: false
-      api_token: ""  # DO NOT put token here! Use env var: GITLAB_MR_BOT_RULES_COMMITS_ASANA_API_TOKEN
 
   approvals:
     enabled: true

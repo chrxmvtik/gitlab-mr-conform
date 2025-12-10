@@ -28,6 +28,8 @@ type Config struct {
 	Rules RulesConfig `mapstructure:"rules"`
 
 	Queue QueueConfig `mapstructure:"queue"`
+
+	Asana AsanaConfig `mapstructure:"asana"`
 }
 
 // QueueConfig holds Redis queue configuration
@@ -49,6 +51,11 @@ type QueueSettings struct {
 	ProcessingInterval time.Duration `mapstructure:"processing_interval"`
 	MaxRetries         int           `mapstructure:"max_retries"`
 	LockTTL            time.Duration `mapstructure:"lock_ttl"`
+}
+
+// AsanaConfig holds Asana integration settings
+type AsanaConfig struct {
+	APIToken string `mapstructure:"api_token"`
 }
 
 type RulesConfig struct {
@@ -118,7 +125,6 @@ type JiraConfig struct {
 type AsanaValidatorConfig struct {
 	Keys              []string `mapstructure:"keys"`
 	ValidateExistence bool     `mapstructure:"validate_existence"`
-	APIToken          string   `mapstructure:"api_token"`
 }
 
 // ConfigLoader handles loading and merging configurations
@@ -158,9 +164,7 @@ func Load() (*Config, error) {
 	_ = viper.BindEnv("gitlab.secrettoken")
 	_ = viper.BindEnv("gitlab.base_url")
 	_ = viper.BindEnv("queue.redis.password")
-	_ = viper.BindEnv("rules.title.asana.api_token")
-	_ = viper.BindEnv("rules.commits.asana.api_token")
-	_ = viper.BindEnv("rules.description.asana.api_token")
+	_ = viper.BindEnv("asana.api_token")
 
 	viper.SetEnvKeyReplacer(strings.NewReplacer(".", "_"))
 

@@ -18,7 +18,7 @@ type DescriptionRule struct {
 	ticketValidators *validator.ValidatorManager
 }
 
-func NewDescriptionRule(cfg interface{}) *DescriptionRule {
+func NewDescriptionRule(cfg interface{}, asanaToken string) *DescriptionRule {
 	descCfg, ok := cfg.(config.DescriptionConfig)
 	if !ok {
 		descCfg = config.DescriptionConfig{
@@ -28,7 +28,7 @@ func NewDescriptionRule(cfg interface{}) *DescriptionRule {
 	}
 	return &DescriptionRule{
 		config:           descCfg,
-		ticketValidators: validator.BuildTicketValidators(descCfg.Jira, descCfg.Asana),
+		ticketValidators: validator.BuildTicketValidators(descCfg.Jira, descCfg.Asana, asanaToken),
 	}
 }
 

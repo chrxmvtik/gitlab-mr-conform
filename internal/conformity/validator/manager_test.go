@@ -10,7 +10,7 @@ func TestValidatorManager_ORLogic(t *testing.T) {
 	manager := NewValidatorManager()
 
 	manager.AddValidator(NewJiraValidator(config.JiraConfig{Keys: []string{"PROJ"}}))
-	manager.AddValidator(NewAsanaValidator(config.AsanaValidatorConfig{Keys: []string{"DESIGN"}}))
+	manager.AddValidator(NewAsanaValidator(config.AsanaValidatorConfig{Keys: []string{"DESIGN"}}, ""))
 
 	tests := []struct {
 		name           string
@@ -70,7 +70,7 @@ func TestValidatorManager_Results(t *testing.T) {
 	manager := NewValidatorManager()
 
 	manager.AddValidator(NewJiraValidator(config.JiraConfig{Keys: []string{"PROJ"}}))
-	manager.AddValidator(NewAsanaValidator(config.AsanaValidatorConfig{Keys: []string{"DESIGN"}}))
+	manager.AddValidator(NewAsanaValidator(config.AsanaValidatorConfig{Keys: []string{"DESIGN"}}, ""))
 
 	message := "feat: PROJ-123 WRONG-1234567890123456"
 	result := manager.ValidateMessage(context.Background(), message)

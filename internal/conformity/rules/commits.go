@@ -18,7 +18,7 @@ type CommitsRule struct {
 	ticketValidators *validator.ValidatorManager
 }
 
-func NewCommitsRule(cfg interface{}) *CommitsRule {
+func NewCommitsRule(cfg interface{}, asanaToken string) *CommitsRule {
 	commitsCfg, ok := cfg.(config.CommitsConfig)
 	if !ok {
 		commitsCfg = config.CommitsConfig{
@@ -34,7 +34,7 @@ func NewCommitsRule(cfg interface{}) *CommitsRule {
 	}
 	return &CommitsRule{
 		config:           commitsCfg,
-		ticketValidators: validator.BuildTicketValidators(commitsCfg.Jira, commitsCfg.Asana),
+		ticketValidators: validator.BuildTicketValidators(commitsCfg.Jira, commitsCfg.Asana, asanaToken),
 	}
 }
 
