@@ -208,8 +208,7 @@ services:
       - GITLAB_MR_BOT_GITLAB_TOKEN=${GITLAB_TOKEN}
       - GITLAB_MR_BOT_GITLAB_SECRET_TOKEN=${WEBHOOK_SECRET}
       # Optional: For Asana API validation
-      - GITLAB_MR_BOT_RULES_TITLE_ASANA_API_TOKEN=${ASANA_TOKEN}
-      - GITLAB_MR_BOT_RULES_COMMITS_ASANA_API_TOKEN=${ASANA_TOKEN}
+      - GITLAB_MR_BOT_ASANA_API_TOKEN=${ASANA_TOKEN}
     volumes:
       - ./config.yaml:/app/config.yaml
 ```
@@ -219,7 +218,7 @@ services:
 secrets:
   - asana_token
 environment:
-  - GITLAB_MR_BOT_RULES_TITLE_ASANA_API_TOKEN_FILE=/run/secrets/asana_token
+  - GITLAB_MR_BOT_ASANA_API_TOKEN=/run/secrets/asana_token
 ```
 
 ### Kubernetes/Helm
