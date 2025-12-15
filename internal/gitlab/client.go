@@ -54,7 +54,7 @@ func (c *Client) GetMergeRequest(projectID interface{}, mrID int) (*gitlab.Merge
 	return mr, nil
 }
 
-func (c *Client) ListMergeRequestApprovals(projectID interface{}, mrID int) (*common.Approvals, error) {
+func (c *Client) ListMergeRequestApprovals(projectID interface{}, mrID int, creatorID int, excludeCreator bool) (*common.Approvals, error) {
 	// List notes
 	notes, err := c.getAllNotes(projectID, mrID)
 	if err != nil {
@@ -98,6 +98,10 @@ func (c *Client) ListMergeRequestApprovals(projectID interface{}, mrID int) (*co
 	count := 0
 	for _, approval := range userApprovals {
 		if approval.Status == "approved" {
+			// Exclude creator from count if option is enabled
+			if excludeCreator && approval.UserID == creatorID {
+				continue
+			}
 			count++
 		}
 	}
@@ -141,7 +145,7 @@ func (c *Client) CreateUpdateMergeRequestDiscussion(projectID interface{}, mrID 
 					return fmt.Errorf("failed to update discussion: %w", err)
 				}
 				if n.Resolved != passed {
-					c.client.Discussions.ResolveMergeRequestDiscussion(projectID, mrID, d.ID, &gitlab.ResolveMergeRequestDiscussionOptions{
+					_, _, err = c.client.Discussions.ResolveMergeRequestDiscussion(projectID, mrID, d.ID, &gitlab.ResolveMergeRequestDiscussionOptions{
 						Resolved: &passed,
 					})
 					if err != nil {
@@ -152,7 +156,6 @@ func (c *Client) CreateUpdateMergeRequestDiscussion(projectID interface{}, mrID 
 				return nil
 			}
 		}
-
 	}
 
 	cdOpts := &gitlab.CreateMergeRequestDiscussionOptions{
@@ -167,7 +170,7 @@ func (c *Client) CreateUpdateMergeRequestDiscussion(projectID interface{}, mrID 
 	fmt.Printf("Created discussion, id: %s\n", cD.ID)
 
 	// Set resolve status
-	c.client.Discussions.ResolveMergeRequestDiscussion(projectID, mrID, cD.ID, &gitlab.ResolveMergeRequestDiscussionOptions{
+	_, _, err = c.client.Discussions.ResolveMergeRequestDiscussion(projectID, mrID, cD.ID, &gitlab.ResolveMergeRequestDiscussionOptions{
 		Resolved: &passed,
 	})
 	if err != nil {

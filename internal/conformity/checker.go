@@ -59,7 +59,7 @@ func (c *Checker) CheckMergeRequest(projectID interface{}, mrID int) (*CheckResu
 	rulesList := c.ruleBuilder.BuildRules(finalConfig)
 
 	// Get merge request and commits
-	mr, commits, approvals, err := c.fetchMergeRequestData(projectID, mrID)
+	mr, commits, approvals, err := c.fetchMergeRequestData(projectID, mrID, finalConfig)
 	if err != nil {
 		return nil, err
 	}
@@ -97,14 +97,14 @@ func (c *Checker) CheckMergeRequest(projectID interface{}, mrID int) (*CheckResu
 }
 
 // fetchMergeRequestData retrieves merge request and commit data
-func (c *Checker) fetchMergeRequestData(projectID interface{}, mrID int) (*gitlabapi.MergeRequest, []*gitlabapi.Commit, *common.Approvals, error) {
+func (c *Checker) fetchMergeRequestData(projectID interface{}, mrID int, finalConfig config.RulesConfig) (*gitlabapi.MergeRequest, []*gitlabapi.Commit, *common.Approvals, error) {
 	// Get merge request details
 	mr, err := c.gitlabClient.GetMergeRequest(projectID, mrID)
 	if err != nil {
 		return nil, nil, nil, fmt.Errorf("failed to get merge request: %w", err)
 	}
 	// Get mr approvers
-	approvals, err := c.gitlabClient.ListMergeRequestApprovals(projectID, mrID)
+	approvals, err := c.gitlabClient.ListMergeRequestApprovals(projectID, mrID, mr.Author.ID, finalConfig.Approvals.ExcludeCreatorFromCount)
 	if err != nil {
 		return nil, nil, nil, fmt.Errorf("failed to get merge request: %w", err)
 	}
