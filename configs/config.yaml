@@ -74,6 +74,7 @@ rules:
     enabled: true
     use_codeowners: false
     min_count: 1 # skipped if use_codeowners set to true
+    exclude_creator_from_count: false # if true, the MR creator cannot be counted as an approver
 
   squash:
     enabled: false

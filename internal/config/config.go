@@ -90,9 +90,10 @@ type CommitsConfig struct {
 }
 
 type ApprovalsConfig struct {
-	Enabled       bool `mapstructure:"enabled"`
-	MinCount      int  `mapstructure:"min_count"`
-	UseCodeowners bool `mapstructure:"use_codeowners"`
+	Enabled                 bool `mapstructure:"enabled"`
+	MinCount                int  `mapstructure:"min_count"`
+	UseCodeowners           bool `mapstructure:"use_codeowners"`
+	ExcludeCreatorFromCount bool `mapstructure:"exclude_creator_from_count"`
 }
 
 type SquashConfig struct {

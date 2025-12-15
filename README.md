@@ -82,6 +82,7 @@ rules:
     enabled: false
     use_codeowners: true # Use .gitlab/CODEOWNERS file to require approvals from owners
     min_count: 1 # Checking just number of approvals, skipped if use_codeowners set to true
+    exclude_creator_from_count: false # If true, the MR creator cannot be counted as an approver
 
   squash:
     enabled: true
