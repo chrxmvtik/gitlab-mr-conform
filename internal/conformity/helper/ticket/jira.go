@@ -1,9 +1,9 @@
-package validator
+package ticket
 
 import (
 	"context"
-	"regexp"
 	"gitlab-mr-conformity-bot/internal/config"
+	"regexp"
 )
 
 var jiraRegex = regexp.MustCompile(`\s\[?([A-Z0-9]+)-([1-9]\d*)\]?`)

@@ -6,7 +6,7 @@ import (
 	"gitlab-mr-conformity-bot/internal/config"
 	"gitlab-mr-conformity-bot/internal/conformity/helper/codeowners"
 	"gitlab-mr-conformity-bot/internal/conformity/helper/common"
-	"gitlab-mr-conformity-bot/internal/conformity/validator"
+	"gitlab-mr-conformity-bot/internal/conformity/helper/ticket"
 	"regexp"
 	"strings"
 
@@ -15,10 +15,10 @@ import (
 
 type CommitsRule struct {
 	config           config.CommitsConfig
-	ticketValidators *validator.ValidatorManager
+	ticketValidators *ticket.ValidatorManager
 }
 
-func NewCommitsRule(cfg interface{}, asanaToken string) *CommitsRule {
+func NewCommitsRule(cfg interface{}, integrations config.IntegrationsConfig) *CommitsRule {
 	commitsCfg, ok := cfg.(config.CommitsConfig)
 	if !ok {
 		commitsCfg = config.CommitsConfig{
@@ -34,7 +34,7 @@ func NewCommitsRule(cfg interface{}, asanaToken string) *CommitsRule {
 	}
 	return &CommitsRule{
 		config:           commitsCfg,
-		ticketValidators: validator.BuildTicketValidators(commitsCfg.Jira, commitsCfg.Asana, asanaToken),
+		ticketValidators: ticket.BuildTicketValidators(commitsCfg.Jira, commitsCfg.Asana, integrations),
 	}
 }
 

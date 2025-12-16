@@ -29,7 +29,7 @@ type Config struct {
 
 	Queue QueueConfig `mapstructure:"queue"`
 
-	Asana AsanaConfig `mapstructure:"asana"`
+	Integrations IntegrationsConfig `mapstructure:"integrations"`
 }
 
 // QueueConfig holds Redis queue configuration
@@ -51,6 +51,11 @@ type QueueSettings struct {
 	ProcessingInterval time.Duration `mapstructure:"processing_interval"`
 	MaxRetries         int           `mapstructure:"max_retries"`
 	LockTTL            time.Duration `mapstructure:"lock_ttl"`
+}
+
+// Integrations settings
+type IntegrationsConfig struct {
+	Asana AsanaConfig `mapstructure:"asana"`
 }
 
 // AsanaConfig holds Asana integration settings
@@ -164,7 +169,7 @@ func Load() (*Config, error) {
 	_ = viper.BindEnv("gitlab.secrettoken")
 	_ = viper.BindEnv("gitlab.base_url")
 	_ = viper.BindEnv("queue.redis.password")
-	_ = viper.BindEnv("asana.api_token")
+	_ = viper.BindEnv("integrations.asana.api_token")
 
 	viper.SetEnvKeyReplacer(strings.NewReplacer(".", "_"))
 

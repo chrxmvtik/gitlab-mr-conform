@@ -8,17 +8,17 @@ import (
 	"gitlab-mr-conformity-bot/internal/config"
 	"gitlab-mr-conformity-bot/internal/conformity/helper/codeowners"
 	"gitlab-mr-conformity-bot/internal/conformity/helper/common"
-	"gitlab-mr-conformity-bot/internal/conformity/validator"
+	"gitlab-mr-conformity-bot/internal/conformity/helper/ticket"
 
 	gitlabapi "gitlab.com/gitlab-org/api/client-go"
 )
 
 type DescriptionRule struct {
 	config           config.DescriptionConfig
-	ticketValidators *validator.ValidatorManager
+	ticketValidators *ticket.ValidatorManager
 }
 
-func NewDescriptionRule(cfg interface{}, asanaToken string) *DescriptionRule {
+func NewDescriptionRule(cfg interface{}, integrations config.IntegrationsConfig) *DescriptionRule {
 	descCfg, ok := cfg.(config.DescriptionConfig)
 	if !ok {
 		descCfg = config.DescriptionConfig{
@@ -28,7 +28,7 @@ func NewDescriptionRule(cfg interface{}, asanaToken string) *DescriptionRule {
 	}
 	return &DescriptionRule{
 		config:           descCfg,
-		ticketValidators: validator.BuildTicketValidators(descCfg.Jira, descCfg.Asana, asanaToken),
+		ticketValidators: ticket.BuildTicketValidators(descCfg.Jira, descCfg.Asana, integrations),
 	}
 }
 

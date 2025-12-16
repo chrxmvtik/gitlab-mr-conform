@@ -1,13 +1,13 @@
-package validator
+package ticket
 
 import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"gitlab-mr-conformity-bot/internal/config"
 	"net/http"
 	"regexp"
 	"time"
-	"gitlab-mr-conformity-bot/internal/config"
 )
 
 var (

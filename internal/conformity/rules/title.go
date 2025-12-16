@@ -9,17 +9,17 @@ import (
 	"gitlab-mr-conformity-bot/internal/config"
 	"gitlab-mr-conformity-bot/internal/conformity/helper/codeowners"
 	"gitlab-mr-conformity-bot/internal/conformity/helper/common"
-	"gitlab-mr-conformity-bot/internal/conformity/validator"
+	"gitlab-mr-conformity-bot/internal/conformity/helper/ticket"
 
 	gitlabapi "gitlab.com/gitlab-org/api/client-go"
 )
 
 type TitleRule struct {
 	config           config.TitleConfig
-	ticketValidators *validator.ValidatorManager
+	ticketValidators *ticket.ValidatorManager
 }
 
-func NewTitleRule(cfg interface{}, asanaToken string) *TitleRule {
+func NewTitleRule(cfg interface{}, integrations config.IntegrationsConfig) *TitleRule {
 	titleCfg, ok := cfg.(config.TitleConfig)
 	if !ok {
 		titleCfg = config.TitleConfig{
@@ -36,7 +36,7 @@ func NewTitleRule(cfg interface{}, asanaToken string) *TitleRule {
 	}
 	return &TitleRule{
 		config:           titleCfg,
-		ticketValidators: validator.BuildTicketValidators(titleCfg.Jira, titleCfg.Asana, asanaToken),
+		ticketValidators: ticket.BuildTicketValidators(titleCfg.Jira, titleCfg.Asana, integrations),
 	}
 }
 

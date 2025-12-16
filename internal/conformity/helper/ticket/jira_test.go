@@ -1,4 +1,4 @@
-package validator
+package ticket
 
 import (
 	"context"
@@ -116,19 +116,19 @@ func TestJiraValidator_ValidateTicket_NilInfo(t *testing.T) {
 func TestJiraValidator_Debug(t *testing.T) {
 	validator := NewJiraValidator(config.JiraConfig{Keys: []string{"PROJ"}})
 	message := "feat: PROJ-123 WRONG-1234567890123456"
-	
+
 	t.Logf("Message: %s", message)
 	t.Logf("Contains: %v", validator.ContainsTicket(message))
-	
+
 	ticket := validator.ExtractTicket(message)
 	if ticket == nil {
 		t.Fatal("Expected ticket, got nil")
 	}
 	t.Logf("Extracted: ProjectKey=%s, TicketID=%s", ticket.ProjectKey, ticket.TicketID)
-	
+
 	result := validator.ValidateTicket(context.Background(), ticket)
 	t.Logf("Valid: %v, Error: %s", result.Valid, result.Error)
-	
+
 	if !result.Valid {
 		t.Errorf("Expected valid PROJ ticket")
 	}

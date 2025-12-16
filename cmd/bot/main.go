@@ -59,7 +59,7 @@ func main() {
 	store := storage.NewMemoryStorage()
 
 	// Initialize conformity checker
-	checker := conformity.NewChecker(cfg.Rules, gitlabClient, log, cfg.Asana.APIToken)
+	checker := conformity.NewChecker(cfg.Rules, gitlabClient, log, cfg.Integrations)
 
 	// Initialize HTTP server
 	srv := server.NewServer(cfg, gitlabClient, checker, store, log, queueManager)
