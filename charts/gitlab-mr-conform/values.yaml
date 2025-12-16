@@ -108,7 +108,7 @@ envFrom: []
 # Secret configuration
 secret:
   # Set to false if you want to use an existing secret
-  create: true
+  create: false
   # Name of the secret (if create is false, this should be the existing secret name)
   # Keep in mind, that your own secret needs to match keys, which are:
   # gitlab-token, webhook-secret and redis-password.
@@ -119,6 +119,7 @@ secret:
     gitlabToken: "" # base64 encoded GitLab token
     webhookSecret: "" # base64 encoded webhook secret
     redisPassword: "" # base64 encoded Redis password, if queue enabled
+    asanaToken: "" # base64 encoded Asana API token, if Asana integration enabled
 
 # Pod Security Context
 podSecurityContext: {}

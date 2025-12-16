@@ -190,7 +190,7 @@ docker run -p 8080:8080 \
   -e GITLAB_MR_BOT_GITLAB_TOKEN=$GITLAB_TOKEN \
   -e GITLAB_MR_BOT_GITLAB_SECRET_TOKEN=$WEBHOOK_SECRET \
   -e GITLAB_MR_BOT_INTEGRATIONS_ASANA_API_TOKEN=$ASANA_TOKEN \
-  ghcr.io/chrxmvtik/gitlab-mr-conform:latest
+  ghcr.io/chrxmvtik/gitlab-mr-conform:main
 ```
 
 **Note:** Only include Asana token environment variables if you're using Asana API validation (`validate_existence: true`).
@@ -201,7 +201,7 @@ docker run -p 8080:8080 \
 version: "3.8"
 services:
   mr-checker:
-    image: ghcr.io/chrxmvtik/gitlab-mr-conform:latest
+    image: ghcr.io/chrxmvtik/gitlab-mr-conform:main
     ports:
       - "8080:8080"
     environment:

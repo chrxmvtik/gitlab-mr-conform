@@ -58,6 +58,12 @@ spec:
                   name: {{ include "gitlab-mr-conform.secretName" $ }}
                   key: redis-password
                   optional: true
+            - name: GITLAB_MR_BOT_INTEGRATIONS_ASANA_API_TOKEN
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "gitlab-mr-conform.secretName" $ }}
+                  key: asana-token
+                  optional: true
             {{- end }}
             {{- end }}
             {{- range $name, $value := .Values.env }}
