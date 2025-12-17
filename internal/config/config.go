@@ -28,6 +28,8 @@ type Config struct {
 	Rules RulesConfig `mapstructure:"rules"`
 
 	Queue QueueConfig `mapstructure:"queue"`
+
+	Integrations IntegrationsConfig `mapstructure:"integrations"`
 }
 
 // QueueConfig holds Redis queue configuration
@@ -51,6 +53,16 @@ type QueueSettings struct {
 	LockTTL            time.Duration `mapstructure:"lock_ttl"`
 }
 
+// Integrations settings
+type IntegrationsConfig struct {
+	Asana AsanaConfig `mapstructure:"asana"`
+}
+
+// AsanaConfig holds Asana integration settings
+type AsanaConfig struct {
+	APIToken string `mapstructure:"api_token"`
+}
+
 type RulesConfig struct {
 	Title       TitleConfig       `mapstructure:"title"`
 	Description DescriptionConfig `mapstructure:"description"`
@@ -61,19 +73,22 @@ type RulesConfig struct {
 }
 
 type TitleConfig struct {
-	Enabled        bool               `mapstructure:"enabled"`
-	MinLength      int                `mapstructure:"min_length"`
-	MaxLength      int                `mapstructure:"max_length"`
-	Conventional   ConventionalConfig `mapstructure:"conventional"`
-	ForbiddenWords []string           `mapstructure:"forbidden_words"`
-	Jira           JiraConfig         `mapstructure:"jira"`
+	Enabled        bool                 `mapstructure:"enabled"`
+	MinLength      int                  `mapstructure:"min_length"`
+	MaxLength      int                  `mapstructure:"max_length"`
+	Conventional   ConventionalConfig   `mapstructure:"conventional"`
+	ForbiddenWords []string             `mapstructure:"forbidden_words"`
+	Jira           JiraConfig           `mapstructure:"jira"`
+	Asana          AsanaValidatorConfig `mapstructure:"asana"`
 }
 
 type DescriptionConfig struct {
-	Enabled         bool `mapstructure:"enabled"`
-	Required        bool `mapstructure:"required"`
-	MinLength       int  `mapstructure:"min_length"`
-	RequireTemplate bool `mapstructure:"require_template"`
+	Enabled         bool                 `mapstructure:"enabled"`
+	Required        bool                 `mapstructure:"required"`
+	MinLength       int                  `mapstructure:"min_length"`
+	RequireTemplate bool                 `mapstructure:"require_template"`
+	Jira            JiraConfig           `mapstructure:"jira"`
+	Asana           AsanaValidatorConfig `mapstructure:"asana"`
 }
 
 type BranchConfig struct {
@@ -83,10 +98,11 @@ type BranchConfig struct {
 }
 
 type CommitsConfig struct {
-	Enabled      bool               `mapstructure:"enabled"`
-	MaxLength    int                `mapstructure:"max_length"`
-	Conventional ConventionalConfig `mapstructure:"conventional"`
-	Jira         JiraConfig         `mapstructure:"jira"`
+	Enabled      bool                 `mapstructure:"enabled"`
+	MaxLength    int                  `mapstructure:"max_length"`
+	Conventional ConventionalConfig   `mapstructure:"conventional"`
+	Jira         JiraConfig           `mapstructure:"jira"`
+	Asana        AsanaValidatorConfig `mapstructure:"asana"`
 }
 
 type ApprovalsConfig struct {
@@ -109,6 +125,11 @@ type ConventionalConfig struct {
 
 type JiraConfig struct {
 	Keys []string `mapstructure:"keys"`
+}
+
+type AsanaValidatorConfig struct {
+	Keys              []string `mapstructure:"keys"`
+	ValidateExistence bool     `mapstructure:"validate_existence"`
 }
 
 // ConfigLoader handles loading and merging configurations
@@ -148,6 +169,7 @@ func Load() (*Config, error) {
 	_ = viper.BindEnv("gitlab.secrettoken")
 	_ = viper.BindEnv("gitlab.base_url")
 	_ = viper.BindEnv("queue.redis.password")
+	_ = viper.BindEnv("integrations.asana.api_token")
 
 	viper.SetEnvKeyReplacer(strings.NewReplacer(".", "_"))
 

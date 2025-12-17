@@ -81,3 +81,10 @@ rules:
       - "feature/*"
       - "fix/*"
     disallow_branches: ["release/*", "hotfix/*"]
+
+# Integrations settings
+integrations:
+  asana:
+    # Set via environment variable:
+    # GITLAB_MR_BOT_INTEGRATIONS_ASANA_API_TOKEN
+    api_token: ""

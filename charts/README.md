@@ -18,8 +18,10 @@
    ```bash
    # Install with custom values
    helm upgrade --install gitlab-mr-conform gitlab-mr-conform/gitlab-mr-conform --version 0.0.1 \
+     --set secret.create=true \
      --set secret.data.gitlabToken="eW91ci1naXRsYWItdG9rZW4=" \
      --set secret.data.webhookSecret="eW91ci13ZWJob29rLXNlY3JldA==" \
+     --set secret.data.asanaToken="<base64encAsanaToken>" \
      --set replicaCount=3
 
    # Or customize configuration rules

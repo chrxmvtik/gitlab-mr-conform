@@ -1,10 +1,12 @@
 package rules
 
 import (
+	"context"
 	"fmt"
 	"gitlab-mr-conformity-bot/internal/config"
 	"gitlab-mr-conformity-bot/internal/conformity/helper/codeowners"
 	"gitlab-mr-conformity-bot/internal/conformity/helper/common"
+	"gitlab-mr-conformity-bot/internal/conformity/helper/ticket"
 	"regexp"
 	"strings"
 
@@ -12,10 +14,11 @@ import (
 )
 
 type CommitsRule struct {
-	config config.CommitsConfig
+	config           config.CommitsConfig
+	ticketValidators *ticket.ValidatorManager
 }
 
-func NewCommitsRule(cfg interface{}) *CommitsRule {
+func NewCommitsRule(cfg interface{}, integrations config.IntegrationsConfig) *CommitsRule {
 	commitsCfg, ok := cfg.(config.CommitsConfig)
 	if !ok {
 		commitsCfg = config.CommitsConfig{
@@ -29,7 +32,10 @@ func NewCommitsRule(cfg interface{}) *CommitsRule {
 			},
 		}
 	}
-	return &CommitsRule{config: commitsCfg}
+	return &CommitsRule{
+		config:           commitsCfg,
+		ticketValidators: ticket.BuildTicketValidators(commitsCfg.Jira, commitsCfg.Asana, integrations),
+	}
 }
 
 func (r *CommitsRule) Name() string {
@@ -46,8 +52,8 @@ func (r *CommitsRule) Check(mr *gitlabapi.MergeRequest, commits []*gitlabapi.Com
 	var invalidFormatCommits []*gitlabapi.Commit
 	invalidTypes := make(map[string][]*gitlabapi.Commit)
 	invalidScopes := make(map[string][]*gitlabapi.Commit)
-	var missingJiraCommits []*gitlabapi.Commit
-	invalidJiraProjects := make(map[string][]*gitlabapi.Commit)
+	var missingTicketCommits []*gitlabapi.Commit
+	invalidTickets := make(map[string][]*gitlabapi.Commit)
 
 	for _, commit := range commits {
 		lines := strings.Split(commit.Message, "\n")
@@ -100,18 +106,22 @@ func (r *CommitsRule) Check(mr *gitlabapi.MergeRequest, commits []*gitlabapi.Com
 			}
 		}
 
-		// Jira Issue Check
-		if len(r.config.Jira.Keys) > 0 {
-			if !common.JiraRegex.MatchString(commit.Message) {
-				missingJiraCommits = append(missingJiraCommits, commit)
-			} else {
-				submatch := common.JiraRegex.FindStringSubmatch(commit.Message)
-				jiraProject := submatch[1]
-				if !common.Contains(r.config.Jira.Keys, jiraProject) {
-					if invalidJiraProjects[jiraProject] == nil {
-						invalidJiraProjects[jiraProject] = []*gitlabapi.Commit{}
+		// Ticket validation (Jira, Asana, etc.)
+		if r.ticketValidators.HasValidators() {
+			ctx := context.Background()
+			result := r.ticketValidators.ValidateMessage(ctx, commit.Message)
+
+			if result.AllMissing {
+				missingTicketCommits = append(missingTicketCommits, commit)
+			} else if !result.AnyValid {
+				for name, valResult := range result.Results {
+					if !valResult.Valid {
+						errorKey := fmt.Sprintf("%s: %s", name, valResult.Error)
+						if invalidTickets[errorKey] == nil {
+							invalidTickets[errorKey] = []*gitlabapi.Commit{}
+						}
+						invalidTickets[errorKey] = append(invalidTickets[errorKey], commit)
 					}
-					invalidJiraProjects[jiraProject] = append(invalidJiraProjects[jiraProject], commit)
 				}
 			}
 		}
@@ -165,27 +175,26 @@ func (r *CommitsRule) Check(mr *gitlabapi.MergeRequest, commits []*gitlabapi.Com
 		ruleResult.Suggestion = append(ruleResult.Suggestion, "Use a valid scope or omit it")
 	}
 
-	// Aggregate missing Jira commits
-	if len(missingJiraCommits) > 0 {
-		errorMsg := fmt.Sprintf("%d commit(s) missing Jira issue tag:", len(missingJiraCommits))
-		for _, commit := range missingJiraCommits {
+	// Aggregate missing ticket commits (new validator system)
+	if len(missingTicketCommits) > 0 {
+		errorMsg := fmt.Sprintf("%d commit(s) missing ticket reference:", len(missingTicketCommits))
+		for _, commit := range missingTicketCommits {
 			commitTitle := common.TruncateCommitMessage(strings.Split(commit.Message, "\n")[0], 50)
 			errorMsg += fmt.Sprintf("\n  - %s ([%s](%s))", commitTitle, commit.ShortID, commit.WebURL)
 		}
 		ruleResult.Error = append(ruleResult.Error, errorMsg)
-		ruleResult.Suggestion = append(ruleResult.Suggestion, "Include a Jira tag like [ABC-123] or ABC-123 \n> **Example**: \n> `fix(token): handle expired JWT refresh logic [SEC-456] `")
+		ruleResult.Suggestion = append(ruleResult.Suggestion, "Include a ticket reference (e.g., Jira: [ABC-123], Asana: PROJ-1234567890123456) \n> **Example**: \n> `fix(token): handle expired JWT refresh logic [SEC-456]`")
 	}
 
-	// Aggregate invalid Jira projects
-	for invalidProject, commits := range invalidJiraProjects {
-		errorMsg := fmt.Sprintf("* %d commit(s) use invalid Jira project '%s':", len(commits), invalidProject)
+	// Aggregate invalid tickets (new validator system)
+	for errorKey, commits := range invalidTickets {
+		errorMsg := fmt.Sprintf("%d commit(s) with %s:", len(commits), errorKey)
 		for _, commit := range commits {
 			commitTitle := common.TruncateCommitMessage(strings.Split(commit.Message, "\n")[0], 50)
 			errorMsg += fmt.Sprintf("\n  - %s ([%s](%s))", commitTitle, commit.ShortID, commit.WebURL)
 		}
 		ruleResult.Error = append(ruleResult.Error, errorMsg)
-		ruleResult.Suggestion = append(ruleResult.Suggestion,
-			fmt.Sprintf("Use a valid Jira key such as %s", r.config.Jira.Keys[0]))
+		ruleResult.Suggestion = append(ruleResult.Suggestion, "Use a valid ticket reference from one of the configured systems")
 	}
 
 	if len(ruleResult.Error) != 0 {

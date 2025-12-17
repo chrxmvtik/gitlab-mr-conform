@@ -6,9 +6,9 @@
 
 ## 🚀 Features
 
-- 🔎 **MR Title & Description Validation**: Enforces format (e.g., JIRA key), length, and structure.
+- 🔎 **MR Title & Description Validation**: Enforces format (e.g., JIRA/Asana key), length, and structure.
 - 💬 **Commit Message Checks**: Ensures message compliance with standards (e.g., Conventional Commits).
-- 🏷️ **JIRA Issue Linking**: Verifies associated issue keys in MRs or commits.
+- 🏷️ **Issue Tracking Integration**: Verifies associated issue/task keys in MRs or commits (supports JIRA and Asana).
 - 🌱 **Branch Rules**: Validates naming conventions (e.g., `feature/`, `bugfix/`, `hotfix/`).
 - 📦 **Squash Commit Enforcement**: Checks MR squash settings when required.
 - 👥 **Approval Rules**: Ensures required reviewers have approved the MR.
@@ -39,6 +39,9 @@ Set up your environment:
 ```bash
 export GITLAB_MR_BOT_GITLAB_TOKEN="your_gitlab_token"
 export GITLAB_MR_BOT_GITLAB_SECRET_TOKEN="your_webhook_secret"
+
+# Optional: For Asana API validation (if validate_existence: true)
+export GITLAB_MR_BOT_INTEGRATIONS_ASANA_API_TOKEN="your_asana_token"
 ```
 
 Create a `config.yaml` file to define your compliance rules:
@@ -61,6 +64,9 @@ rules:
       types: ["feat", "fix", "docs", "refactor", "release"]
     jira:
       keys: ["PROJ", "JIRA"]
+    asana:
+      keys: ["DESIGN", "MARKETING"]
+      validate_existence: false  # Set to true to verify tasks exist via Asana API
 
   description:
     enabled: true
@@ -77,6 +83,11 @@ rules:
     max_length: 72
     conventional:
       types: ["feat", "fix", "docs", "refactor", "release"]
+    jira:
+      keys: ["PROJ"]
+    asana:
+      keys: ["DESIGN"]
+      validate_existence: false
 
   approvals:
     enabled: false
@@ -87,11 +98,35 @@ rules:
   squash:
     enabled: true
     enforce_branches: ["feature/*", "fix/*"]
+
+integrations:
+  asana:
+    # Set via environment variable:
+    # GITLAB_MR_BOT_INTEGRATIONS_ASANA_API_TOKEN
+    api_token: ""
 ```
 
-> [!TIP]  
-> You can configure settings per project by adding a `.mr-conform.yaml` file to the root of the repository's default branch.  
+> [!TIP]
+> You can configure settings per project by adding a `.mr-conform.yaml` file to the root of the repository's default branch.
 > To define your settings, simply include a rules object in the file.
+
+#### Ticket System Integration
+
+The tool supports both **Jira** and **Asana** for issue tracking validation:
+
+**Jira Format:**
+- `PROJ-123` or `[PROJ-123]` - Standard Jira issue key
+
+**Asana Formats:**
+- `PROJ-1234567890123456` - Project prefix + 16-digit task ID
+- `https://app.asana.com/.../task/1234567890123456` - Full Asana task URL
+
+**Validation Modes:**
+- **Regex-only (default)**: Fast validation checking format and project keys
+- **API validation (opt-in)**: Verify tasks actually exist (requires API token)
+
+> [!NOTE]
+> When both Jira and Asana are configured, commits pass if they have a valid reference to **either** system.
 
 ### 3. Setup GitLab Webhook
 
@@ -106,7 +141,7 @@ rules:
 
 ## 🧾 **MR Conformity Check Summary**
 
-### ❌ 1 conformity check(s) failed:
+### ❌ 2 conformity check(s) failed:
 
 ---
 
@@ -128,7 +163,7 @@ rules:
 
 #### ❌ **Approvals Required**
 
-📄 **Issue 1**: 
+📄 **Issue 2**: 
 
 | | Code owners | Approvals | Allowed approvers |
 | --- | --- | --- | --- |
@@ -151,8 +186,11 @@ invalid owners ignored: [@@@approveuser @@randomgroup]
 docker run -p 8080:8080 \
   -e GITLAB_MR_BOT_GITLAB_TOKEN=$GITLAB_TOKEN \
   -e GITLAB_MR_BOT_GITLAB_SECRET_TOKEN=$WEBHOOK_SECRET \
-  ghcr.io/chrxmvtik/gitlab-mr-conform:latest
+  -e GITLAB_MR_BOT_INTEGRATIONS_ASANA_API_TOKEN=$ASANA_TOKEN \
+  ghcr.io/chrxmvtik/gitlab-mr-conform:main
 ```
+
+**Note:** Only include Asana token environment variables if you're using Asana API validation (`validate_existence: true`).
 
 ### Docker Compose
 
@@ -160,14 +198,24 @@ docker run -p 8080:8080 \
 version: "3.8"
 services:
   mr-checker:
-    image: ghcr.io/chrxmvtik/gitlab-mr-conform:latest
+    image: ghcr.io/chrxmvtik/gitlab-mr-conform:main
     ports:
       - "8080:8080"
     environment:
       - GITLAB_MR_BOT_GITLAB_TOKEN=${GITLAB_TOKEN}
       - GITLAB_MR_BOT_GITLAB_SECRET_TOKEN=${WEBHOOK_SECRET}
+      # Optional: For Asana API validation
+      - GITLAB_MR_BOT_INTEGRATIONS_ASANA_API_TOKEN=${ASANA_TOKEN}
     volumes:
       - ./config.yaml:/app/config.yaml
+```
+
+**Best Practice:** Use Docker secrets instead of environment variables for production:
+```yaml
+secrets:
+  - asana_token
+environment:
+  - GITLAB_MR_BOT_INTEGRATIONS_ASANA_API_TOKEN=/run/secrets/asana_token
 ```
 
 ### Kubernetes/Helm

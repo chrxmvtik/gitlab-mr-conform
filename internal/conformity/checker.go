@@ -38,10 +38,10 @@ type RuleFailure struct {
 	Suggestion []string
 }
 
-func NewChecker(defaultConfig config.RulesConfig, client *gitlab.Client, log *logger.Logger) *Checker {
+func NewChecker(defaultConfig config.RulesConfig, client *gitlab.Client, log *logger.Logger, integrations config.IntegrationsConfig) *Checker {
 	return &Checker{
 		configLoader:     config.NewConfigLoader(defaultConfig, client, log),
-		ruleBuilder:      NewRuleBuilder(),
+		ruleBuilder:      NewRuleBuilder(integrations),
 		summaryGenerator: NewSummaryGenerator(),
 		gitlabClient:     client,
 		logger:           log,
