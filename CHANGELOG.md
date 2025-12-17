@@ -2,6 +2,39 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.5.0](https://github.com/chrxmvtik/gitlab-mr-conform/compare/v0.4.0..v0.5.0) - 2025-12-17
+
+### ⛰️  Features
+
+- [``537c3b0``](https://github.com/chrxmvtik/gitlab-mr-conform/commit/537c3b009f325e0df381d483b4ab4400e45dc9c1): add comprehensive Asana ticket validation support ([#56](https://github.com/chrxmvtik/gitlab-mr-conform/issues/56)) by @larubbio in #56
+
+- [``f554d16``](https://github.com/chrxmvtik/gitlab-mr-conform/commit/f554d16484227459047fa065517014e13af72337): new approvals option exclude_creator_from_count ([#60](https://github.com/chrxmvtik/gitlab-mr-conform/issues/60)) by @hufon in #60
+
+
+### 🐛 Bug Fixes
+
+- [``5426dc1``](https://github.com/chrxmvtik/gitlab-mr-conform/commit/5426dc1340db36e63cfaca2d374605f8566521db): only start queue processor when queue is enabled ([#57](https://github.com/chrxmvtik/gitlab-mr-conform/issues/57)) by @larubbio in #57
+
+
+### ⬆️ Dependencies
+
+- [``af8f6ba``](https://github.com/chrxmvtik/gitlab-mr-conform/commit/af8f6baa8f6049095fca03dffaa6b73971d04034): **(deps)** bump gitlab.com/gitlab-org/api/client-go ([#40](https://github.com/chrxmvtik/gitlab-mr-conform/issues/40)) by @dependabot[bot] in #40
+
+- [``287bfe5``](https://github.com/chrxmvtik/gitlab-mr-conform/commit/287bfe590e84c46638493aae2517edbe91274d40): **(deps)** bump gitlab.com/gitlab-org/api/client-go ([#36](https://github.com/chrxmvtik/gitlab-mr-conform/issues/36)) by @dependabot[bot] in #36
+
+- [``b3ea040``](https://github.com/chrxmvtik/gitlab-mr-conform/commit/b3ea0405bf2ec81f7f3f5452beccc5185aa9a54d): **(deps)** bump github.com/bmatcuk/doublestar/v4 from 4.9.0 to 4.9.1 ([#37](https://github.com/chrxmvtik/gitlab-mr-conform/issues/37)) by @dependabot[bot] in #37
+
+
+## Contributors ❤️
+
+* @larubbio
+* @hufon
+
+
+
+**Full Changelog**: https://github.com/chrxmvtik/gitlab-mr-conform/compare/v0.4.0...v0.5.0
+
+
 ## [0.4.0](https://github.com/chrxmvtik/gitlab-mr-conform/compare/v0.3.0..v0.4.0) - 2025-07-16
 
 ### ⛰️  Features
