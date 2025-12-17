@@ -2,6 +2,23 @@ apiVersion: v1
 entries:
   gitlab-mr-conform:
   - apiVersion: v2
+    appVersion: 0.5.0
+    created: "2025-12-17T11:33:34.722830879Z"
+    description: A Helm chart for GitLab MR Conform Bot
+    digest: d7524ac7515f9a636619f8ac9b0ed50781468840ba1a3245ab01d57fb4a2cb23
+    home: https://github.com/chrxmvtik/gitlab-mr-conform
+    keywords:
+    - gitlab
+    - bot
+    - merge-request
+    maintainers:
+    - name: chrxmvtik
+    name: gitlab-mr-conform
+    type: application
+    urls:
+    - https://github.com/chrxmvtik/gitlab-mr-conform/releases/download/gitlab-mr-conform-0.5.0/gitlab-mr-conform-0.5.0.tgz
+    version: 0.5.0
+  - apiVersion: v2
     appVersion: 0.4.0
     created: "2025-07-16T20:29:07.317374451Z"
     description: A Helm chart for GitLab MR Conform Bot
@@ -103,4 +120,4 @@ entries:
     urls:
     - https://github.com/chrxmvtik/gitlab-mr-conform/releases/download/gitlab-mr-conform-0.1.0/gitlab-mr-conform-0.1.0.tgz
     version: 0.1.0
-generated: "2025-07-16T20:29:07.317402063Z"
+generated: "2025-12-17T11:33:34.722858421Z"
