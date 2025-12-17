@@ -21,7 +21,7 @@
      --set secret.create=true \
      --set secret.data.gitlabToken="eW91ci1naXRsYWItdG9rZW4=" \
      --set secret.data.webhookSecret="eW91ci13ZWJob29rLXNlY3JldA==" \
-     --set secret.data.asanaTokne="<base64encAsanaToken>" \
+     --set secret.data.asanaToken="<base64encAsanaToken>" \
      --set replicaCount=3
 
    # Or customize configuration rules

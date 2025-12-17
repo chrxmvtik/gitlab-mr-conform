@@ -44,8 +44,6 @@ export GITLAB_MR_BOT_GITLAB_SECRET_TOKEN="your_webhook_secret"
 export GITLAB_MR_BOT_INTEGRATIONS_ASANA_API_TOKEN="your_asana_token"
 ```
 
-> **Security Note**: Never commit API tokens to your repository. Always use environment variables for sensitive credentials.
-
 Create a `config.yaml` file to define your compliance rules:
 
 ```yaml
@@ -100,6 +98,12 @@ rules:
   squash:
     enabled: true
     enforce_branches: ["feature/*", "fix/*"]
+
+integrations:
+  asana:
+    # Set via environment variable:
+    # GITLAB_MR_BOT_INTEGRATIONS_ASANA_API_TOKEN
+    api_token: ""
 ```
 
 > [!TIP]
@@ -121,15 +125,8 @@ The tool supports both **Jira** and **Asana** for issue tracking validation:
 - **Regex-only (default)**: Fast validation checking format and project keys
 - **API validation (opt-in)**: Verify tasks actually exist (requires API token)
 
-**OR Logic:** When both Jira and Asana are configured, commits pass if they have a valid reference to **either** system.
-
-**Security:**
-- **Asana API tokens are personal access tokens with full account access** - treat them like passwords
-- **NEVER commit tokens to your repository** or config files
-- Always use environment variable: `GITLAB_MR_BOT_INTEGRATIONS_ASANA_API_TOKEN`
-- Use secrets management (Kubernetes Secrets, Docker Secrets, AWS Secrets Manager, etc.) in production
-- Consider using a dedicated Asana service account with limited access instead of a personal token
-- Rotate tokens regularly and immediately revoke if compromised
+> [!NOTE]
+> When both Jira and Asana are configured, commits pass if they have a valid reference to **either** system.
 
 ### 3. Setup GitLab Webhook
 
@@ -144,7 +141,7 @@ The tool supports both **Jira** and **Asana** for issue tracking validation:
 
 ## 🧾 **MR Conformity Check Summary**
 
-### ❌ 1 conformity check(s) failed:
+### ❌ 2 conformity check(s) failed:
 
 ---
 
@@ -166,7 +163,7 @@ The tool supports both **Jira** and **Asana** for issue tracking validation:
 
 #### ❌ **Approvals Required**
 
-📄 **Issue 1**: 
+📄 **Issue 2**: 
 
 | | Code owners | Approvals | Allowed approvers |
 | --- | --- | --- | --- |
