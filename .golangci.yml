@@ -26,7 +26,6 @@ linters:
     - gocyclo
     - govet
     - godot
-    - gofumpt
     - nilnil
     - prealloc
     - predeclared
@@ -120,6 +119,7 @@ formatters:
   enable:
     - gofmt
     - goimports
+    - gofumpt
   exclusions:
     generated: lax
     paths:
