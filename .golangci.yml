@@ -41,7 +41,6 @@ linters:
     - dupl
     - exhaustive
     - lll
-    - goimports
   settings:
     depguard:
       rules:
