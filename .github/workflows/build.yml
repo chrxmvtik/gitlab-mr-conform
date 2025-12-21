@@ -19,6 +19,11 @@ jobs:
         uses: actions/setup-go@v5
         with:
           go-version: "1.24.4"
+      - name: golangci-lint
+        uses: golangci/golangci-lint-action@v9.2.0
+        with:
+          version: v2.7.2
+          install-mode: "binary"
       - name: Install dependencies
         run: go mod download
       - name: Build
