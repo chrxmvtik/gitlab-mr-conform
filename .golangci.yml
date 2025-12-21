@@ -1,0 +1,141 @@
+version: "2"
+linters:
+  default: none
+  enable:
+    - asciicheck
+    - depguard
+    - dogsled
+    - errcheck
+    - funlen
+    - goconst
+    - goprintffuncname
+    - gosec
+    - ineffassign
+    - misspell
+    - nakedret
+    - nolintlint
+    - rowserrcheck
+    - staticcheck
+    - unconvert
+    - unparam
+    - unused
+    - revive
+    - errname
+    - errorlint
+    - gocritic
+    - gocyclo
+    - govet
+    - godot
+    - gofumpt
+    - nilnil
+    - prealloc
+    - predeclared
+    - thelper
+    - whitespace
+    - wsl
+    - bodyclose
+    - contextcheck
+    - exportloopref
+    - makezero
+    - noctx
+    - sqlclosecheck
+    - dupl
+    - exhaustive
+    - lll
+    - goimports
+  settings:
+    depguard:
+      rules:
+        main:
+          deny:
+            - pkg: io/ioutil
+              desc: "Deprecated since Go 1.16, use io or os packages"
+            - pkg: github.com/pkg/errors
+              desc: "Use standard library errors with fmt.Errorf and %w"
+    dupl:
+      threshold: 100
+    exhaustive:
+      default-signifies-exhaustive: false
+    funlen:
+      lines: 100
+      statements: 50
+    goconst:
+      min-len: 3
+      min-occurrences: 3
+    gocritic:
+      disabled-checks:
+        - dupImport
+        - ifElseChain
+        - octalLiteral
+        - whyNoLint
+        - wrapperFunc
+      enabled-tags:
+        - diagnostic
+        - experimental
+        - opinionated
+        - performance
+        - style
+    gocyclo:
+      min-complexity: 15
+    govet:
+      enable-all: true
+      settings:
+        shadow:
+          strict: true
+    lll:
+      line-length: 140
+    misspell:
+      locale: US
+    nolintlint:
+      require-explanation: false
+      require-specific: false
+      allow-unused: false
+  exclusions:
+    generated: lax
+    presets:
+      - comments
+      - common-false-positives
+      - legacy
+      - std-error-handling
+    rules:
+      - linters:
+          - funlen
+          - mnd
+        path: _test\.go
+      - linters:
+          - testpackage
+        path: _expansion_test\.go
+      - linters:
+          - gocritic
+        text: "unnecessaryDefer:"
+    paths:
+      - test/testdata_etc
+      - internal/cache
+      - internal/renameio
+      - internal/robustio
+      - third_party$
+      - builtin$
+      - examples$
+formatters:
+  enable:
+    - gofmt
+    - goimports
+  exclusions:
+    generated: lax
+    paths:
+      - test/testdata_etc
+      - internal/cache
+      - internal/renameio
+      - internal/robustio
+      - third_party$
+      - builtin$
+      - examples$
+issues:
+  max-issues-per-linter: 0 # Show all issues
+  max-same-issues: 0 # Show all occurrences
+  new: false # Check all code, not just new
+run:
+  timeout: 5m
+  tests: true
+  allow-parallel-runners: true
+  go: "1.24" # Specify your Go version
