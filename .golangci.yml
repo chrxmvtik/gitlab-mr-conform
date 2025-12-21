@@ -19,28 +19,25 @@ linters:
     - unconvert
     - unparam
     - unused
-    - revive
-    - errname
-    - errorlint
     - gocritic
     - gocyclo
     - govet
+    - dupl
+    - exhaustive
+    - revive
+    - errname
+    - errorlint
     - godot
     - nilnil
     - prealloc
     - predeclared
     - thelper
     - whitespace
-    - wsl
     - bodyclose
     - contextcheck
-    - exportloopref
     - makezero
     - noctx
     - sqlclosecheck
-    - dupl
-    - exhaustive
-    - lll
   settings:
     depguard:
       rules:
