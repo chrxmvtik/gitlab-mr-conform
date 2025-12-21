@@ -22,6 +22,6 @@ jobs:
       - name: Install dependencies
         run: go mod download
       - name: Build
-        run: go build -v ./...
+        run: go build -v ./cmd/bot
       - name: Test with the Go CLI
-        run: go test
+        run: go test ./...
