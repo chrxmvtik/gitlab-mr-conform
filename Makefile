@@ -1,4 +1,4 @@
-.PHONY: build run test clean docker-build docker-run test-integration test-unit gitlab-start gitlab-stop
+.PHONY: build run test clean docker-build docker-run test-integration test-unit gitlab-start gitlab-stop test-env-start test-env-stop test-env-restart test-env-status test-env-logs
 
 APP_NAME=gitlab-mr-conform
 VERSION?=latest
@@ -24,19 +24,46 @@ test-integration:
 	go test -v -timeout 30m ./test/integration/...
 
 gitlab-start:
-	@echo "Starting GitLab test instance (this may take 5-10 minutes)..."
-	@chmod +x test/docker/run_gitlab.sh
-	@./test/docker/run_gitlab.sh
+	@chmod +x test/docker/test_env.sh
+	@./test/docker/test_env.sh start
 
 gitlab-stop:
-	@echo "Stopping GitLab test instance..."
-	@chmod +x test/docker/stop_gitlab.sh
-	@./test/docker/stop_gitlab.sh
+	@chmod +x test/docker/test_env.sh
+	@./test/docker/test_env.sh stop
 
 gitlab-clean: gitlab-stop
 	@echo "Cleaning up GitLab test data..."
 	@rm -f test/docker/gitlab_url.txt
 	@rm -f test/docker/gitlab_token.txt
+
+test-env-start:
+	@chmod +x test/docker/test_env.sh
+	@./test/docker/test_env.sh start
+
+test-env-restart:
+	@chmod +x test/docker/test_env.sh
+	@./test/docker/test_env.sh restart
+
+test-env-status:
+	@chmod +x test/docker/test_env.sh
+	@./test/docker/test_env.sh status
+
+test-env-logs:
+	@chmod +x test/docker/test_env.sh
+	@./test/docker/test_env.sh logs
+
+test-env-stop:
+	@echo ""
+	@echo "✓ Complete test environment is ready!"
+	@echo "  - GitLab: http://localhost"
+	@echo "  - Bot webhook: http://localhost:8080/webhook"
+	@echo "  - Network: gitlab-mr-conform-network"
+	@echo ""
+	@echo "Run 'make test-integration' to start tests"
+
+test-env-stop:
+	@chmod +x test/docker/test_env.sh
+	@./test/docker/test_env.sh stop
 
 clean:
 	rm -rf bin/

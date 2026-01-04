@@ -126,19 +126,24 @@ container_name="gitlab-mr-conform-test"
 #  Main Logic
 # ============================================================================
 
+cecho b "Checking for existing GitLab container..."
+# Check for existing container and skip if found
+existing_container_id=$(docker ps -a -f "name=$container_name" --format "{{.ID}}")
+if [[ -n $existing_container_id ]]; then
+  cecho y "GitLab container '$container_name' already exists. Skipping creation."
+  cecho y "To recreate it, please stop and remove the existing container first."
+  exit 0
+fi
+
 # Pull the GitLab Docker image
 cecho b "Pulling GitLab image version '$gitlab_version'..."
 docker pull "$gitlab_image:$gitlab_version"
-
-# Stop and remove any existing GitLab container
-cecho b "Preparing to start GitLab..."
-"$script_dir/stop_gitlab.sh"
 
 # Start a new GitLab container
 cecho b "Starting GitLab..."
 docker run --detach \
   --hostname localhost \
-  --publish 443:443 --publish 80:80 --publish 2022:22 \
+  --network host \
   --name "$container_name" \
   --restart always \
   --volume "$repo_root_dir/test/docker/healthcheck-and-setup.sh:/healthcheck-and-setup.sh" \

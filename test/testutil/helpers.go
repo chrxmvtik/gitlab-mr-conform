@@ -35,10 +35,16 @@ func SetupTestEnvironment(t *testing.T) *TestConfig {
 	if err != nil {
 		t.Fatalf("Failed to create GitLab client: %v", err)
 	}
-
+	
 	// Create a project for testing
 	project := CreateTestProject(t, client, "integration")
 	t.Logf("✓ Created test project: %s (ID: %d)", project.Name, project.ID)
+
+	// Create a Project Webhook for gitlab-mr-conform bot to use
+	// Use 127.0.0.1 to force IPv4, avoiding IPv6 connection issues
+	webhookURL := "http://127.0.0.1:8081/webhook"
+	hook := CreateProjectWebhook(t, client, project.ID, webhookURL)
+	t.Logf("✓ Created project webhook: %s", hook.URL)
 
 	return &TestConfig{
 		GitLabURL:   gitlabURL,
@@ -85,11 +91,33 @@ func CreateTestProject(t *testing.T, client *TestClient, name string) *gitlabapi
 		t.Fatalf("Failed to create test project: %v", err)
 	}
 
-	t.Cleanup(func() {
-		_ = client.DeleteProject(project.ID)
-	})
+	// t.Cleanup(func() {
+		// _ = client.DeleteProject(project.ID)
+	// })
 
 	return project
+}
+
+// CreateTestWebhook creates a project webhook triggered by merge request events
+func CreateProjectWebhook(t *testing.T, client *TestClient, projectID interface{}, webhookURL string) *gitlabapi.ProjectHook {
+	t.Helper()
+
+	hookOptions := &gitlabapi.AddProjectHookOptions{
+		URL:                   gitlabapi.Ptr(webhookURL),
+		MergeRequestsEvents:   gitlabapi.Ptr(true),
+		EnableSSLVerification: gitlabapi.Ptr(false),
+	}
+
+	hook, _, err := client.api.Projects.AddProjectHook(projectID, hookOptions)
+	if err != nil {
+		t.Fatalf("Failed to create project webhook: %v", err)
+	}
+
+	// t.Cleanup(func() {
+		// _, _ = client.api.Projects.DeleteProjectHook(projectID, hook.ID)
+	// })
+
+	return hook
 }
 
 // CreateTestBranch creates a test branch in a project
@@ -121,13 +149,12 @@ func CreateTestMergeRequest(t *testing.T, client *TestClient, projectID interfac
 		return nil, err
 	}
 
-	t.Cleanup(func() {
+	// t.Cleanup(func() {
 		// Close the MR on cleanup
-		_ = client.UpdateMergeRequest(projectID, mr.IID, &gitlabapi.UpdateMergeRequestOptions{
-			StateEvent: gitlabapi.Ptr("close"),
-		})
-	})
-
+		// _ = client.UpdateMergeRequest(projectID, mr.IID, &gitlabapi.UpdateMergeRequestOptions{
+			// StateEvent: gitlabapi.Ptr("close"),
+		// })
+	// })
 	return mr, nil
 }
 
