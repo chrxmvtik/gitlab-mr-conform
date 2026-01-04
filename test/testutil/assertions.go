@@ -3,32 +3,42 @@ package testutil
 import (
 	"strings"
 	"testing"
-
-	gitlabapi "gitlab.com/gitlab-org/api/client-go"
 )
 
-// AssertMRHasDiscussion checks if a merge request has at least one discussion
-func AssertMRHasDiscussion(t *testing.T, discussions []*gitlabapi.Discussion) {
+// AssertHasMRConformDiscussion checks if the MR has a discussion from the MR Conformity Bot
+func AssertHasMRConformDiscussion(t *testing.T, client *TestClient, projectID int, mrIID int) {
 	t.Helper()
 
-	if len(discussions) == 0 {
-		t.Error("Expected at least one discussion on the merge request")
-	}
+	mrConformDiscussion, err := client.GetMRConformDiscussion(projectID, mrIID)
+	AssertNoErrors(t, err)
+	AssertNotNil(t, mrConformDiscussion)
 }
 
-// AssertMRDiscussionContains checks if any discussion contains the expected text
-func AssertMRDiscussionContains(t *testing.T, discussions []*gitlabapi.Discussion, expectedText string) {
+// AssertMRConformDiscussionContains checks if the MR Conformity Bot discussion contains the expected text
+func AssertMRConformDiscussionContains(t *testing.T, client *TestClient, projectID int, mrIID int, expectedText string) {
 	t.Helper()
 
-	for _, discussion := range discussions {
-		for _, note := range discussion.Notes {
-			if strings.Contains(note.Body, expectedText) {
-				return
-			}
+	mrConformDiscussion, err := client.GetMRConformDiscussion(projectID, mrIID)
+	AssertNoErrors(t, err)
+	AssertNotNil(t, mrConformDiscussion)
+
+	// Check if Notes is nil or empty
+	if mrConformDiscussion.Notes == nil || len(mrConformDiscussion.Notes) == 0 {
+		t.Error("Expected MR Conformity Bot discussion to have notes, but found none")
+		return
+	}
+
+	found := false
+	for _, note := range mrConformDiscussion.Notes {
+		if strings.Contains(note.Body, expectedText) {
+			found = true
+			break
 		}
 	}
 
-	t.Errorf("Expected to find '%s' in merge request discussions, but it was not found", expectedText)
+	if !found {
+		t.Errorf("Expected MR Conformity Bot discussion to contain text: %q", expectedText)
+	}
 }
 
 // AssertNoErrors checks that there are no errors

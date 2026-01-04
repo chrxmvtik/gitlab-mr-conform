@@ -2,6 +2,7 @@ package testutil
 
 import (
 	"fmt"
+	"strings"
 
 	"gitlab-mr-conformity-bot/internal/gitlab"
 
@@ -133,4 +134,35 @@ func (c *TestClient) GetMergeRequest(projectID interface{}, mrIID int) (*gitlaba
 		return nil, fmt.Errorf("failed to get merge request: %w", err)
 	}
 	return mr, nil
+}
+
+// ListMergeRequestDiscussions lists discussions for a merge request
+func (c *TestClient) ListMergeRequestDiscussions(projectID interface{}, mrIID int, opts *gitlabapi.ListMergeRequestDiscussionsOptions) ([]*gitlabapi.Discussion, error) {
+	discussions, _, err := c.api.Discussions.ListMergeRequestDiscussions(projectID, mrIID, opts)
+	if err != nil {
+		return nil, fmt.Errorf("failed to list merge request discussions: %w", err)
+	}
+	return discussions, nil
+}
+
+// GetMRConformDiscussion retrieves the discussion created by the MR Conformity Bot
+func (c *TestClient) GetMRConformDiscussion(projectID interface{}, mrIID int) (*gitlabapi.Discussion, error) {
+	discussions, _, err := c.api.Discussions.ListMergeRequestDiscussions(projectID, mrIID, nil)
+	if err != nil {
+		return nil, fmt.Errorf("failed to list merge request discussions: %w", err)
+	}
+
+	for _, discussion := range discussions {
+		// Checks for "🧾 Merge Request Compliance Report"
+		for _, note := range discussion.Notes {
+			if note.System || note.Body == "" {
+				continue
+			}
+			if strings.Contains(note.Body, "Merge Request Compliance Report") {
+				return discussion, nil
+			}
+		}
+	}
+
+	return nil, fmt.Errorf("no discussion from Merge Request Conformity Bot found")
 }
