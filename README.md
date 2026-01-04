@@ -249,6 +249,46 @@ make run
 make build
 ```
 
+## 🧪 Testing
+
+The project includes comprehensive integration tests that run against a real GitLab instance.
+
+### Quick Start
+
+```bash
+# Start GitLab test instance (takes 5-10 minutes on first run)
+make gitlab-start
+
+# Run integration tests
+make test-integration
+
+# Stop GitLab
+make gitlab-stop
+```
+
+### Available Test Commands
+
+| Command | Description |
+|---------|-------------|
+| `make test` | Run all tests |
+| `make test-unit` | Run only unit tests |
+| `make test-integration` | Run integration tests against GitLab |
+| `make gitlab-start` | Start GitLab Docker container for testing |
+| `make gitlab-stop` | Stop GitLab container |
+| `make gitlab-clean` | Stop and remove all test data |
+
+### Test Structure
+
+- **Integration Tests** (`test/integration/`) - Tests against real GitLab API
+  - GitLab connection and authentication
+  - Project and merge request workflows
+  - Webhook management
+  - Branch operations
+
+- **Test Utilities** (`test/testutil/`) - Reusable helpers
+  - Project and MR creation with auto-cleanup
+  - Common assertions and validations
+
 ## 🔍 Troubleshooting
 
 **Webhook not receiving events?**
