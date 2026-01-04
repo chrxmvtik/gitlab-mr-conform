@@ -91,9 +91,9 @@ func CreateTestProject(t *testing.T, client *TestClient, name string) *gitlabapi
 		t.Fatalf("Failed to create test project: %v", err)
 	}
 
-	// t.Cleanup(func() {
-		// _ = client.DeleteProject(project.ID)
-	// })
+	t.Cleanup(func() {
+		_ = client.DeleteProject(project.ID)
+	})
 
 	return project
 }
@@ -113,9 +113,9 @@ func CreateProjectWebhook(t *testing.T, client *TestClient, projectID interface{
 		t.Fatalf("Failed to create project webhook: %v", err)
 	}
 
-	// t.Cleanup(func() {
-		// _, _ = client.api.Projects.DeleteProjectHook(projectID, hook.ID)
-	// })
+	t.Cleanup(func() {
+		_, _ = client.api.Projects.DeleteProjectHook(projectID, hook.ID)
+	})
 
 	return hook
 }
@@ -149,12 +149,12 @@ func CreateTestMergeRequest(t *testing.T, client *TestClient, projectID interfac
 		return nil, err
 	}
 
-	// t.Cleanup(func() {
+	t.Cleanup(func() {
 		// Close the MR on cleanup
-		// _ = client.UpdateMergeRequest(projectID, mr.IID, &gitlabapi.UpdateMergeRequestOptions{
-			// StateEvent: gitlabapi.Ptr("close"),
-		// })
-	// })
+		_ = client.UpdateMergeRequest(projectID, mr.IID, &gitlabapi.UpdateMergeRequestOptions{
+			StateEvent: gitlabapi.Ptr("close"),
+		})
+	})
 	return mr, nil
 }
 

@@ -1,7 +1,3 @@
 # Generated test configuration
 gitlab_url.txt
 gitlab_token.txt
-
-# Test coverage
-*.coverprofile
-coverage.out

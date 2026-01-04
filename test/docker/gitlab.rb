@@ -4,12 +4,6 @@ prometheus_monitoring['enable']=false
 gitlab_rails['initial_license_file']='/etc/gitlab/Gitlab.gitlab-license'
 gitlab_kas['enable']=false
 
-# Allow webhooks to local network (required for testing with local bot)
-gitlab_rails['webhook_timeout'] = 10
-gitlab_rails['outbound_requests_allowlist'] = ['127.0.0.0/8', '10.0.0.0/8', '172.16.0.0/12', '192.168.0.0/16']
-gitlab_rails['allow_local_requests_from_web_hooks_and_services'] = true
-gitlab_rails['allow_local_requests_from_system_hooks'] = true
-
 gitlab_rails['ldap_enabled'] = true
 gitlab_rails['ldap_servers'] = {
   'ldap_main' => {

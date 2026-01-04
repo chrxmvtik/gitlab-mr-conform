@@ -6,8 +6,8 @@
 
 
 printf 'Waiting for GitLab container to become healthy'
-
-until test -n "$(docker ps --quiet --filter name=gitlab --filter health=healthy)"; do
+container_name="mr-conform-gitlab"
+until test -n "$(docker ps --quiet --filter name=$container_name --filter health=healthy)"; do
   printf '.'
   sleep 5
 done

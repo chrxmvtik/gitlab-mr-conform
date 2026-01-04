@@ -13,7 +13,8 @@ test:
 	go test -v ./...
 
 test-unit:
-	go test -v -short ./...
+	@echo "Running unit tests..."
+	go test -v -short ./internal/... ./pkg/...
 
 test-integration:
 	@echo "Running integration tests..."
@@ -51,15 +52,6 @@ test-env-status:
 test-env-logs:
 	@chmod +x test/docker/test_env.sh
 	@./test/docker/test_env.sh logs
-
-test-env-stop:
-	@echo ""
-	@echo "✓ Complete test environment is ready!"
-	@echo "  - GitLab: http://localhost"
-	@echo "  - Bot webhook: http://localhost:8080/webhook"
-	@echo "  - Network: gitlab-mr-conform-network"
-	@echo ""
-	@echo "Run 'make test-integration' to start tests"
 
 test-env-stop:
 	@chmod +x test/docker/test_env.sh

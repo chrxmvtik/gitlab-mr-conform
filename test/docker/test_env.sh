@@ -67,8 +67,8 @@ show_usage() {
 script_dir=$(cd "$(dirname "${BASH_SOURCE[0]}")" &>/dev/null && pwd)
 repo_root_dir=$(cd "$script_dir/../.." &>/dev/null && pwd)
 
-gitlab_container="gitlab-mr-conform-test"
-bot_container="gitlab-mr-conformity-bot"
+gitlab_container="mr-conform-gitlab"
+bot_container="mr-conform-bot"
 
 # ============================================================================
 #  Command Functions

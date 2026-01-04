@@ -251,43 +251,39 @@ make build
 
 ## 🧪 Testing
 
-The project includes comprehensive integration tests that run against a real GitLab instance.
+The project includes integration tests that run against a real GitLab instance.
 
 ### Quick Start
 
 ```bash
-# Start GitLab test instance (takes 5-10 minutes on first run)
-make gitlab-start
+# Start test environment (GitLab + Bot)
+# Builds MR Conform Bot image and starts GitLab container
+# Gitlab starts can take a few minutes on first run
+make test-env-start
 
 # Run integration tests
 make test-integration
 
-# Stop GitLab
-make gitlab-stop
+# Stop test environment
+make test-env-stop
 ```
 
 ### Available Test Commands
 
 | Command | Description |
 |---------|-------------|
-| `make test` | Run all tests |
-| `make test-unit` | Run only unit tests |
-| `make test-integration` | Run integration tests against GitLab |
-| `make gitlab-start` | Start GitLab Docker container for testing |
-| `make gitlab-stop` | Stop GitLab container |
-| `make gitlab-clean` | Stop and remove all test data |
+| `make test-env-start` | Start GitLab and bot containers |
+| `make test-env-stop` | Stop all containers and clean up |
+| `make test-env-restart` | Stop and start the environment |
+| `make test-env-status` | Show status of all components |
+| `make test-env-logs` | Show recent logs from containers | 
+| `make test-integration` | Run integration tests against test environment |
 
 ### Test Structure
 
+- **Unit Tests** (`internal/` and `pkg/`) - Component-level tests
 - **Integration Tests** (`test/integration/`) - Tests against real GitLab API
-  - GitLab connection and authentication
-  - Project and merge request workflows
-  - Webhook management
-  - Branch operations
-
-- **Test Utilities** (`test/testutil/`) - Reusable helpers
-  - Project and MR creation with auto-cleanup
-  - Common assertions and validations
+- **Test Utilities** (`test/testutil/`) - Helpers for test setup and assertions
 
 ## 🔍 Troubleshooting
 

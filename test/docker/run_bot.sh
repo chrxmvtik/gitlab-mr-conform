@@ -13,7 +13,7 @@ docker build -t gitlab-mr-conform:test .
 
 echo "Starting gitlab-mr-conform bot..."
 docker run -d \
-  --name gitlab-mr-conformity-bot \
+  --name mr-conform-bot \
   --network host \
   -e GITLAB_MR_BOT_GITLAB_TOKEN=token-string-here123 \
   -e GITLAB_MR_BOT_GITLAB_SECRET_TOKEN=test-webhook-secret \
@@ -23,11 +23,11 @@ docker run -d \
   gitlab-mr-conform:test
 
 echo ""
-echo "✓ Bot is running as 'gitlab-mr-conformity-bot'"
+echo "✓ Bot is running as 'mr-conform-bot'"
 echo "✓ Webhook endpoint: http://localhost:8081/webhook"
 echo ""
 echo "To view logs:"
-echo "  docker logs -f gitlab-mr-conformity-bot"
+echo "  docker logs -f mr-conform-bot"
 echo ""
 echo "To stop:"
-echo "  docker stop gitlab-mr-conformity-bot && docker rm gitlab-mr-conformity-bot"
+echo "  docker stop mr-conform-bot && docker rm mr-conform-bot"

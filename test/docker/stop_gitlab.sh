@@ -1,6 +1,6 @@
 #!/bin/bash
 
-container_name="gitlab-mr-conform-test"
+container_name="mr-conform-gitlab"
 
 existing_container_id=$(docker ps -a -f "name=$container_name" --format "{{.ID}}")
 if [[ -n $existing_container_id ]]; then

@@ -18,10 +18,10 @@ curl --silent --show-error --fail --output /dev/null 127.0.0.1:80
 
 # Because this script runs on a regular health check interval,
 # this file functions as a marker that tells us if initialization already finished.
-done=/var/gitlab-acctest-initialized
+done=/var/gitlab-integration-test-initialized
 
 test -f $done || {
-  echo 'Initializing GitLab for acceptance tests'
+  echo 'Initializing GitLab for integration tests'
 
   # As documented at https://docs.gitlab.com/ee/user/profile/personal_access_tokens.html#programmatically-creating-a-personal-access-token
   # the token has to be at least 20 characters long - thus "token-string-here123".
@@ -39,4 +39,4 @@ test -f $done || {
   touch $done
 }
 
-echo 'GitLab is ready for acceptance tests'
+echo 'GitLab is ready for integration tests'

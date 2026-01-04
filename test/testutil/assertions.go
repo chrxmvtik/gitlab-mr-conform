@@ -22,8 +22,8 @@ func AssertMRConformDiscussionContains(t *testing.T, client *TestClient, project
 	AssertNoErrors(t, err)
 	AssertNotNil(t, mrConformDiscussion)
 
-	// Check if Notes is nil or empty
-	if mrConformDiscussion.Notes == nil || len(mrConformDiscussion.Notes) == 0 {
+	// Check if Notes is empty
+	if len(mrConformDiscussion.Notes) == 0 {
 		t.Error("Expected MR Conformity Bot discussion to have notes, but found none")
 		return
 	}

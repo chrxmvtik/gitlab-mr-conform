@@ -120,7 +120,7 @@ if [[ -n "$memory_limit" ]]; then
   extra_options+=" --memory $memory_limit"
 fi
 
-container_name="gitlab-mr-conform-test"
+container_name="mr-conform-gitlab"
 
 # ============================================================================
 #  Main Logic
