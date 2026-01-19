@@ -18,6 +18,11 @@ jobs:
       contents: read
 
     steps:
+      - name: Verify make
+        run: |
+          which make || true
+          make --version || true
+          cat /etc/os-release
       - name: Checkout repository
         uses: actions/checkout@v4
       - name: Start test environment
