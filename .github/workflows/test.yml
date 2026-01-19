@@ -44,6 +44,9 @@ jobs:
     needs: [test]
     if: ${{ always() }}
     steps:
+      # Checkout repository
+      - name: Checkout repository
+        uses: actions/checkout@v4
       - name: Install build tools
         run: |
           sudo apt-get update

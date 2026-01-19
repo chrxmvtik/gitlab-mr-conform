@@ -34,8 +34,8 @@ services:
     depends_on:
       gitlab:
         condition: service_healthy
-    # ports:
-    #   - "8081:8081"
+    ports:
+      - "8081:8081"
     environment:
       - GITLAB_MR_BOT_GITLAB_TOKEN=token-string-here123
       - GITLAB_MR_BOT_GITLAB_SECRET_TOKEN=test-webhook-secret
