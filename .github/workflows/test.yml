@@ -18,13 +18,13 @@ jobs:
       contents: read
 
     steps:
-      - name: Check docker compose version
-        run: |
-          docker compose version
       - name: Install build tools
         run: |
           sudo apt-get update
           sudo apt-get install -y build-essential
+      - name: Install docker compose plugin
+        run: |
+          sudo apt-get install docker-compose-plugin
       - name: Checkout repository
         uses: actions/checkout@v4
       - name: Start test environment
