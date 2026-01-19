@@ -6,8 +6,8 @@ services:
     container_name: mr-conform-gitlab
     hostname: gitlab
     restart: always
-    # ports:
-    #   - "8080:80"
+    ports:
+      - "8080:80"
     volumes:
       - ./healthcheck-and-setup.sh:/healthcheck-and-setup.sh
       - ./gitlab.rb:/etc/gitlab/gitlab.rb:ro

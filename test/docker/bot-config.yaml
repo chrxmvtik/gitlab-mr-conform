@@ -6,7 +6,7 @@ server:
 gitlab:
   # Token set via GITLAB_MR_BOT_GITLAB_TOKEN environment variable
   # Uses localhost since bot runs with host network
-  base_url: "http://localhost:8080"
+  base_url: "http://gitlab:80"
 
 queue:
   enabled: false
