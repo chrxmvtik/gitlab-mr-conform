@@ -39,6 +39,9 @@ jobs:
       - name: Run integration tests
         run: |
           make test-integration
+      - name: Print bot logs
+        run: |
+          make test-env-logs-bot
   cleanup:
     runs-on: gha-runner-scale-set
     needs: [test]

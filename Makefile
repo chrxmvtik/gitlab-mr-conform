@@ -1,4 +1,4 @@
-.PHONY: build run test clean docker-build docker-run test-integration test-unit gitlab-start gitlab-stop test-env-start test-env-stop test-env-restart test-env-status test-env-logs
+.PHONY: build run test clean docker-build docker-run test-integration test-unit gitlab-start gitlab-stop test-env-start test-env-stop test-env-restart test-env-status test-env-logs test-env-logs-bot
 
 APP_NAME=gitlab-mr-conform
 VERSION?=latest
@@ -49,9 +49,9 @@ test-env-status:
 	@chmod +x test/docker/manage.sh
 	@./test/docker/manage.sh status
 
-test-env-logs:
-	@chmod +x test/docker/test_env.sh
-	@./test/docker/test_env.sh logs
+test-env-logs-bot:
+	@chmod +x test/docker/manage.sh
+	@./test/docker/manage.sh logs-bot
 
 test-env-stop:
 	@chmod +x test/docker/manage.sh
