@@ -18,11 +18,10 @@ jobs:
       contents: read
 
     steps:
-      - name: Verify make
+      - name: Install build tools
         run: |
-          which make || true
-          make --version || true
-          cat /etc/os-release
+          apt-get update
+          apt-get install -y build-essential
       - name: Checkout repository
         uses: actions/checkout@v4
       - name: Start test environment
