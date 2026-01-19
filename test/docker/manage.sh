@@ -1,10 +1,9 @@
 #!/usr/bin/env bash
 
 # ============================================================================
-#  GitLab MR Conform Test Environment Manager
+#  GitLab MR Conform Test Environment Manager (Docker Compose)
 #
-#  This script orchestrates the test environment by calling the individual
-#  scripts for GitLab and bot management.
+#  This script orchestrates the test environment using Docker Compose
 # ============================================================================
 
 set -e
@@ -47,6 +46,8 @@ show_usage() {
   echo "  restart       Restart the test environment"
   echo "  status        Show status of test environment"
   echo "  logs          Show logs from all containers"
+  echo "  logs-gitlab   Show GitLab logs only"
+  echo "  logs-bot      Show bot logs only"
   echo ""
   echo "Options for 'start':"
   echo "  --gitlab-version <version>  Specify GitLab version (default: latest)"
@@ -55,9 +56,10 @@ show_usage() {
   echo ""
   echo "Examples:"
   echo "  $0 start"
-  echo "  $0 start --gitlab-version 16.0.0"
+  echo "  $0 start --gitlab-version 16.0.0 --cpus 2 --memory 4g"
   echo "  $0 stop"
   echo "  $0 status"
+  echo "  $0 logs -f"
 }
 
 # ============================================================================
@@ -66,9 +68,7 @@ show_usage() {
 
 script_dir=$(cd "$(dirname "${BASH_SOURCE[0]}")" &>/dev/null && pwd)
 repo_root_dir=$(cd "$script_dir/../.." &>/dev/null && pwd)
-
-gitlab_container="mr-conform-gitlab"
-bot_container="mr-conform-bot"
+compose_file="$script_dir/docker-compose.yml"
 
 # ============================================================================
 #  Command Functions
@@ -78,32 +78,128 @@ start_environment() {
   cecho b "=== Starting Test Environment ==="
   echo ""
 
-  # Start GitLab using the dedicated script
-  cecho b "Starting GitLab..."
-  "$script_dir/run_gitlab.sh" "$@"
-  
+  # Parse command-line arguments
+  local gitlab_version="latest"
+  local compose_override=""
+  local use_override=false
+
+  while [[ $# -gt 0 ]]; do
+    key="$1"
+    case $key in
+      --gitlab-version)
+        if [[ -n "$2" ]]; then
+          gitlab_version="$2"
+          shift 2
+        else
+          echo "Error: --gitlab-version requires a value"
+          exit 1
+        fi
+        ;;
+      --cpus)
+        if [[ -n "$2" ]]; then
+          use_override=true
+          compose_override+="
+services:
+  gitlab:
+    deploy:
+      resources:
+        limits:
+          cpus: '$2'
+"
+          shift 2
+        else
+          echo "Error: --cpus requires a value"
+          exit 1
+        fi
+        ;;
+      --memory)
+        if [[ -n "$2" ]]; then
+          use_override=true
+          if [[ -z "$compose_override" ]]; then
+            compose_override+="
+services:
+  gitlab:
+    deploy:
+      resources:
+        limits:
+          memory: '$2'
+"
+          else
+            compose_override+="          memory: '$2'
+"
+          fi
+          shift 2
+        else
+          echo "Error: --memory requires a value"
+          exit 1
+        fi
+        ;;
+      *)
+        echo "Unknown option: $1"
+        exit 1
+        ;;
+    esac
+  done
+
+  # Set GitLab version
+  export GITLAB_VERSION="$gitlab_version"
+
+  # Create override file if needed
+  local compose_files="-f $compose_file"
+  if [[ "$use_override" == true ]]; then
+    echo "$compose_override" > "$script_dir/docker-compose.override.yml"
+    compose_files+=" -f $script_dir/docker-compose.override.yml"
+  fi
+
+  cecho b "Starting services with Docker Compose..."
+  docker compose $compose_files up -d --build
+
+  # Clean up override file
+  if [[ "$use_override" == true ]]; then
+    rm -f "$script_dir/docker-compose.override.yml"
+  fi
+
   echo ""
+  cecho b "Waiting for GitLab to be healthy..."
+  local max_wait=180
+  local elapsed=0
+  while [ $elapsed -lt $max_wait ]; do
+    if docker compose $compose_files ps gitlab 2>/dev/null | grep -q "healthy"; then
+      cecho g "✓ GitLab is healthy"
+      break
+    fi
+    sleep 2
+    elapsed=$((elapsed + 2))
+    if [ $((elapsed % 20)) -eq 0 ]; then
+      echo "  Still waiting... (${elapsed}s/${max_wait}s)"
+    fi
+  done
   
-  # Configure GitLab settings via API to allow local webhook requests
+  if [ $elapsed -ge $max_wait ]; then
+    cecho r "GitLab did not become healthy in time"
+    cecho y "Check logs with: ./manage.sh logs-gitlab"
+    exit 1
+  fi
+
+  echo ""
   cecho b "Configuring GitLab settings..."
-  sleep 2  # Brief wait to ensure GitLab API is ready
+  sleep 5  # Brief wait to ensure GitLab API is ready
   curl -s -X PUT -H "PRIVATE-TOKEN: token-string-here123" \
     -d "allow_local_requests_from_web_hooks_and_services=true" \
     -d "allow_local_requests_from_system_hooks=true" \
-    "http://localhost/api/v4/application/settings" > /dev/null
-  cecho g "✓ GitLab configured to allow local webhooks"
-  
-  echo ""
-  
-  # Start bot using the dedicated script
-  cecho b "Starting Bot..."
-  "$script_dir/run_bot.sh"
-  
+    "http://localhost:8080/api/v4/application/settings" > /dev/null && \
+    cecho g "✓ GitLab configured to allow local webhooks" || \
+    cecho y "⚠ GitLab configuration may have failed (container might still be initializing)"
+
+  # Generate files with GitLab URL and access token
+  echo "http://localhost:8080" > "$script_dir/gitlab_url.txt"
+  echo "token-string-here123" > "$script_dir/gitlab_token.txt"
+
   echo ""
   cecho g "=== Test Environment Started Successfully! ==="
   echo ""
   cecho b "GitLab:"
-  echo "  • URL: http://localhost"
+  echo "  • URL: http://localhost:8080"
   echo "  • User: root"
   echo "  • Password: mK9JnG7jwYdFcBNoQ3W3"
   echo "  • API Token: token-string-here123"
@@ -114,7 +210,7 @@ start_environment() {
   echo ""
   cecho b "Next steps:"
   cecho y "  make test-integration    # Run integration tests"
-  cecho y "  $0 logs                  # View container logs"
+  cecho y "  $0 logs -f               # Follow container logs"
   cecho y "  $0 stop                  # Stop environment"
   echo ""
 }
@@ -123,15 +219,7 @@ stop_environment() {
   cecho b "=== Stopping Test Environment ==="
   echo ""
 
-  # Stop bot using the dedicated script
-  cecho b "Stopping Bot..."
-  "$script_dir/stop_bot.sh"
-  
-  echo ""
-  
-  # Stop GitLab using the dedicated script
-  cecho b "Stopping GitLab..."
-  "$script_dir/stop_gitlab.sh"
+  docker compose -f "$compose_file" down
 
   echo ""
   cecho g "✓ Test environment stopped"
@@ -142,55 +230,19 @@ show_status() {
   cecho b "=== Test Environment Status ==="
   echo ""
 
-  # Check GitLab
-  if docker ps --filter "name=$gitlab_container" --format "{{.Names}}" | grep -q "$gitlab_container"; then
-    local health=$(docker inspect --format='{{.State.Health.Status}}' "$gitlab_container" 2>/dev/null || echo "no-healthcheck")
-    if [[ "$health" == "healthy" ]]; then
-      cecho g "GitLab: running (healthy)"
-    else
-      cecho y "GitLab: running ($health)"
-    fi
-  elif docker ps -a --filter "name=$gitlab_container" --format "{{.Names}}" | grep -q "$gitlab_container"; then
-    cecho r "GitLab: stopped"
-  else
-    cecho r "GitLab: not found"
-  fi
-
-  # Check Bot
-  if docker ps --filter "name=$bot_container" --format "{{.Names}}" | grep -q "$bot_container"; then
-    local health=$(docker inspect --format='{{.State.Health.Status}}' "$bot_container" 2>/dev/null || echo "no-healthcheck")
-    if [[ "$health" == "healthy" ]]; then
-      cecho g "Bot: running (healthy)"
-    else
-      cecho y "Bot: running ($health)"
-    fi
-  elif docker ps -a --filter "name=$bot_container" --format "{{.Names}}" | grep -q "$bot_container"; then
-    cecho r "Bot: stopped"
-  else
-    cecho r "Bot: not found"
-  fi
+  docker compose -f "$compose_file" ps
 
   echo ""
 }
 
 show_logs() {
-  cecho b "=== Container Logs ==="
-  echo ""
-  cecho y "GitLab logs: docker logs -f $gitlab_container"
-  cecho y "Bot logs: docker logs -f $bot_container"
-  echo ""
-  
-  # Show last 20 lines from each if containers exist
-  if docker ps --filter "name=$gitlab_container" --format "{{.Names}}" | grep -q "$gitlab_container"; then
-    cecho b "--- GitLab (last 20 lines) ---"
-    docker logs --tail 20 "$gitlab_container" 2>&1
-    echo ""
-  fi
+  local service="${1:-}"
+  local extra_args=("${@:2}")
 
-  if docker ps --filter "name=$bot_container" --format "{{.Names}}" | grep -q "$bot_container"; then
-    cecho b "--- Bot (last 20 lines) ---"
-    docker logs --tail 20 "$bot_container" 2>&1
-    echo ""
+  if [[ -z "$service" ]]; then
+    docker compose -f "$compose_file" logs "${extra_args[@]}"
+  else
+    docker compose -f "$compose_file" logs "$service" "${extra_args[@]}"
   fi
 }
 
@@ -222,7 +274,13 @@ case $command in
     show_status
     ;;
   logs)
-    show_logs
+    show_logs "" "$@"
+    ;;
+  logs-gitlab)
+    show_logs "gitlab" "$@"
+    ;;
+  logs-bot)
+    show_logs "bot" "$@"
     ;;
   --help|-h|help)
     show_usage

@@ -38,24 +38,24 @@ gitlab-clean: gitlab-stop
 	@rm -f test/docker/gitlab_token.txt
 
 test-env-start:
-	@chmod +x test/docker/test_env.sh
-	@./test/docker/test_env.sh start
+	@chmod +x test/docker/manage.sh
+	@./test/docker/manage.sh start
 
 test-env-restart:
 	@chmod +x test/docker/test_env.sh
 	@./test/docker/test_env.sh restart
 
 test-env-status:
-	@chmod +x test/docker/test_env.sh
-	@./test/docker/test_env.sh status
+	@chmod +x test/docker/manage.sh
+	@./test/docker/manage.sh status
 
 test-env-logs:
 	@chmod +x test/docker/test_env.sh
 	@./test/docker/test_env.sh logs
 
 test-env-stop:
-	@chmod +x test/docker/test_env.sh
-	@./test/docker/test_env.sh stop
+	@chmod +x test/docker/manage.sh
+	@./test/docker/manage.sh stop
 
 clean:
 	rm -rf bin/

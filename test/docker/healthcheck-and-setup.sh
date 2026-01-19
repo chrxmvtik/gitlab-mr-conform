@@ -14,7 +14,7 @@
 set -e
 
 # Check for a successful HTTP status code from GitLab.
-curl --silent --show-error --fail --output /dev/null 127.0.0.1:80
+curl --silent --show-error --fail --output /dev/null 127.0.0.1:8080
 
 # Because this script runs on a regular health check interval,
 # this file functions as a marker that tells us if initialization already finished.

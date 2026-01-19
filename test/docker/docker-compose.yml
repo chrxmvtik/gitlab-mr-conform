@@ -1,0 +1,56 @@
+version: "3.8"
+
+services:
+  gitlab:
+    image: gitlab/gitlab-ce:${GITLAB_VERSION:-latest}
+    container_name: mr-conform-gitlab
+    hostname: gitlab
+    restart: always
+    # ports:
+    #   - "8080:80"
+    volumes:
+      - ./healthcheck-and-setup.sh:/healthcheck-and-setup.sh
+      - ./gitlab.rb:/etc/gitlab/gitlab.rb:ro
+    healthcheck:
+      test: ["CMD-SHELL", "/healthcheck-and-setup.sh"]
+      interval: 5s
+      timeout: 3m
+      retries: 60
+      start_period: 30s
+    # deploy:
+    #   resources:
+    #     limits:
+    #       cpus: ${GITLAB_CPUS:-}
+    #       memory: ${GITLAB_MEMORY:-}
+    networks:
+      - mr-conform-network
+
+  bot:
+    image: gitlab-mr-conform:test
+    container_name: mr-conform-bot
+    build:
+      context: ../..
+      dockerfile: Dockerfile
+    depends_on:
+      gitlab:
+        condition: service_healthy
+    # ports:
+    #   - "8081:8081"
+    environment:
+      - GITLAB_MR_BOT_GITLAB_TOKEN=token-string-here123
+      - GITLAB_MR_BOT_GITLAB_SECRET_TOKEN=test-webhook-secret
+      - GITLAB_MR_BOT_GITLAB_BASE_URL=http://gitlab
+      - GITLAB_MR_BOT_SERVER_PORT=8081
+    volumes:
+      - ./bot-config.yaml:/configs/config.yaml:ro
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8081/health"]
+      interval: 5s
+      timeout: 3s
+      retries: 3
+    networks:
+      - mr-conform-network
+
+networks:
+  mr-conform-network:
+    driver: bridge

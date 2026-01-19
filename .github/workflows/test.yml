@@ -1,0 +1,31 @@
+name: Test
+
+# This workflow uses actions that are not certified by GitHub.
+# They are provided by a third-party and are governed by
+# separate terms of service, privacy policy, and support
+# documentation.
+
+on:
+  push:
+    branches:
+      - main
+      - feat/*
+
+jobs:
+  build:
+    runs-on: gha-runner-scale-set
+    permissions:
+      contents: read
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+      - name: Start test environment
+        run: |
+          make test-env-start
+      - name: Run integration tests
+        run: |
+          make test-integration
+      - name: Clean test environment
+        run: |
+          make test-env-stop

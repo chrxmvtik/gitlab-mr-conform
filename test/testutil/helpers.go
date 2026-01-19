@@ -35,14 +35,13 @@ func SetupTestEnvironment(t *testing.T) *TestConfig {
 	if err != nil {
 		t.Fatalf("Failed to create GitLab client: %v", err)
 	}
-	
+
 	// Create a project for testing
 	project := CreateTestProject(t, client, "integration")
 	t.Logf("✓ Created test project: %s (ID: %d)", project.Name, project.ID)
 
 	// Create a Project Webhook for gitlab-mr-conform bot to use
-	// Use 127.0.0.1 to force IPv4, avoiding IPv6 connection issues
-	webhookURL := "http://127.0.0.1:8081/webhook"
+	webhookURL := "http://bot:8081/webhook"
 	hook := CreateProjectWebhook(t, client, project.ID, webhookURL)
 	t.Logf("✓ Created project webhook: %s", hook.URL)
 
@@ -81,7 +80,7 @@ func CreateTestProject(t *testing.T, client *TestClient, name string) *gitlabapi
 	t.Helper()
 
 	projectName := fmt.Sprintf("test-%s-%d", name, time.Now().Unix())
-	
+
 	project, err := client.CreateProject(projectName, &gitlabapi.CreateProjectOptions{
 		Description:          gitlabapi.Ptr("Test project for MR conformity bot"),
 		InitializeWithReadme: gitlabapi.Ptr(true),
@@ -103,7 +102,8 @@ func CreateProjectWebhook(t *testing.T, client *TestClient, projectID interface{
 	t.Helper()
 
 	hookOptions := &gitlabapi.AddProjectHookOptions{
-		URL:                   gitlabapi.Ptr(webhookURL),
+		Name:                  gitlabapi.Ptr("gitlab-mr-conform"),
+		URL:                   &webhookURL,
 		MergeRequestsEvents:   gitlabapi.Ptr(true),
 		EnableSSLVerification: gitlabapi.Ptr(false),
 	}

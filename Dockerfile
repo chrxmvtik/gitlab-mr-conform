@@ -25,7 +25,7 @@ RUN CGO_ENABLED=0 GOOS=$TARGETOS GOARCH=$TARGETARCH go build \
     -o bot ./cmd/bot
 
 # Final stage - minimal distroless image
-FROM --platform=$TARGETPLATFORM gcr.io/distroless/static-debian12:nonroot
+FROM --platform=$TARGETPLATFORM gcr.io/distroless/static-debian13:nonroot
 
 # Copy binary and configs from build stage
 COPY --from=build --chown=nonroot:nonroot /app/bot /
