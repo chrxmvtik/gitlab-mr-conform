@@ -187,6 +187,7 @@ services:
   curl -s -X PUT -H "PRIVATE-TOKEN: token-string-here123" \
     -d "allow_local_requests_from_web_hooks_and_services=true" \
     -d "allow_local_requests_from_system_hooks=true" \
+    -d "outbound_local_requests_allowlist_raw=bot.local" \
     "http://localhost:8080/api/v4/application/settings" > /dev/null && \
     cecho g "✓ GitLab configured to allow local webhooks" || \
     cecho y "⚠ GitLab configuration may have failed (container might still be initializing)"
