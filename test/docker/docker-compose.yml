@@ -34,6 +34,10 @@ services:
     depends_on:
       gitlab:
         condition: service_healthy
+    networks:
+      mr-conform-network:
+        aliases:
+          - bot.local
     ports:
       - "8081:8081"
     environment:
@@ -49,8 +53,6 @@ services:
       interval: 5s
       timeout: 3s
       retries: 3
-    networks:
-      - mr-conform-network
 
 networks:
   mr-conform-network:

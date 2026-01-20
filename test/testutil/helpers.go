@@ -41,7 +41,7 @@ func SetupTestEnvironment(t *testing.T) *TestConfig {
 	t.Logf("✓ Created test project: %s (ID: %d)", project.Name, project.ID)
 
 	// Create a Project Webhook for gitlab-mr-conform bot to use
-	webhookURL := "http://bot:8081/webhook"
+	webhookURL := "http://bot.local:8081/webhook"
 	hook := CreateProjectWebhook(t, client, project.ID, webhookURL)
 	t.Logf("✓ Created project webhook: %s", hook.URL)
 
