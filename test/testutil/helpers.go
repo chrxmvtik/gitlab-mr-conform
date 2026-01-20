@@ -194,17 +194,46 @@ func WaitForMergeRequest(t *testing.T, client *TestClient, projectID interface{}
 }
 
 // WaitForBotDiscussion waits for the bot to create a discussion on the merge request
+// func WaitForBotDiscussion(t *testing.T, client *TestClient, projectID interface{}, mrIID int, timeout time.Duration) (*gitlabapi.Discussion, error) {
+// 	t.Helper()
+
+// 	deadline := time.Now().Add(timeout)
+// 	for time.Now().Before(deadline) {
+// 		discussion, err := client.GetMRConformDiscussion(projectID, mrIID)
+// 		if err == nil && discussion != nil && discussion.Notes != nil && len(discussion.Notes) > 0 {
+// 			return discussion, nil
+// 		}
+// 		time.Sleep(500 * time.Millisecond)
+// 	}
+
+// 	return nil, fmt.Errorf("timeout waiting for bot discussion")
+// }
+
+// WaitForBotDiscussion waits for the bot to create a discussion on the merge request
 func WaitForBotDiscussion(t *testing.T, client *TestClient, projectID interface{}, mrIID int, timeout time.Duration) (*gitlabapi.Discussion, error) {
 	t.Helper()
-
 	deadline := time.Now().Add(timeout)
+	var lastErr error
+	attemptCount := 0
+
 	for time.Now().Before(deadline) {
+		attemptCount++
 		discussion, err := client.GetMRConformDiscussion(projectID, mrIID)
-		if err == nil && discussion != nil && discussion.Notes != nil && len(discussion.Notes) > 0 {
+		if err == nil && discussion != nil {
+			t.Logf("Found bot discussion after %d attempts", attemptCount)
 			return discussion, nil
 		}
+
+		// Store the last error for debugging
+		lastErr = err
+
+		// Log periodically to help debug
+		if attemptCount%10 == 0 {
+			t.Logf("Attempt %d: still waiting for bot discussion (last error: %v)", attemptCount, err)
+		}
+
 		time.Sleep(500 * time.Millisecond)
 	}
 
-	return nil, fmt.Errorf("timeout waiting for bot discussion")
+	return nil, fmt.Errorf("timeout waiting for bot discussion after %d attempts (last error: %w)", attemptCount, lastErr)
 }

@@ -146,6 +146,28 @@ func (c *TestClient) ListMergeRequestDiscussions(projectID interface{}, mrIID in
 }
 
 // GetMRConformDiscussion retrieves the discussion created by the MR Conformity Bot
+// func (c *TestClient) GetMRConformDiscussion(projectID interface{}, mrIID int) (*gitlabapi.Discussion, error) {
+// 	discussions, _, err := c.api.Discussions.ListMergeRequestDiscussions(projectID, mrIID, nil)
+// 	if err != nil {
+// 		return nil, fmt.Errorf("failed to list merge request discussions: %w", err)
+// 	}
+
+// 	for _, discussion := range discussions {
+// 		// Checks for "🧾 Merge Request Compliance Report"
+// 		for _, note := range discussion.Notes {
+// 			// fmt.Printf("Discussion: %s", note.Body)
+// 			if note.System || note.Body == "" {
+// 				continue
+// 			}
+// 			if strings.Contains(note.Body, "Merge Request Compliance Report") {
+// 				return discussion, nil
+// 			}
+// 		}
+// 	}
+
+// 	return nil, fmt.Errorf("no discussion from Merge Request Conformity Bot found")
+// }
+
 func (c *TestClient) GetMRConformDiscussion(projectID interface{}, mrIID int) (*gitlabapi.Discussion, error) {
 	discussions, _, err := c.api.Discussions.ListMergeRequestDiscussions(projectID, mrIID, nil)
 	if err != nil {
@@ -153,10 +175,12 @@ func (c *TestClient) GetMRConformDiscussion(projectID interface{}, mrIID int) (*
 	}
 
 	for _, discussion := range discussions {
-		// Checks for "🧾 Merge Request Compliance Report"
+		if discussion.Notes == nil || len(discussion.Notes) == 0 {
+			continue
+		}
+
 		for _, note := range discussion.Notes {
-			// fmt.Printf("Discussion: %s", note.Body)
-			if note.System || note.Body == "" {
+			if note == nil || note.System || note.Body == "" {
 				continue
 			}
 			if strings.Contains(note.Body, "Merge Request Compliance Report") {
@@ -165,5 +189,5 @@ func (c *TestClient) GetMRConformDiscussion(projectID interface{}, mrIID int) (*
 		}
 	}
 
-	return nil, fmt.Errorf("no discussion from Merge Request Conformity Bot found")
+	return nil, fmt.Errorf("no discussion from Merge Request Conformity Bot found (checked %d discussions)", len(discussions))
 }
