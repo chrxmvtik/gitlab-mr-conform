@@ -114,6 +114,17 @@ func CreateProjectWebhook(t *testing.T, client *TestClient, projectID interface{
 		t.Fatalf("Failed to create project webhook: %v", err)
 	}
 
+	var event gitlabapi.ProjectHookEvent
+
+	event = "merge_requests_events"
+
+	testHook, err := client.api.Projects.TriggerTestProjectHook(projectID, hook.ID, event)
+	// if err != nil {
+	// 	t.Fatalf("Failed to test project webhook: %v\n", err)
+	// }
+
+	fmt.Printf("Webhook test result: %d", testHook.StatusCode)
+
 	t.Cleanup(func() {
 		_, _ = client.api.Projects.DeleteProjectHook(projectID, hook.ID)
 	})
