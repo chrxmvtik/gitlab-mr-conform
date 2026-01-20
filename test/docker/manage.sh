@@ -192,7 +192,7 @@ services:
     cecho y "⚠ GitLab configuration may have failed (container might still be initializing)"
 
   # Generate files with GitLab URL and access token
-  echo "http://localhost:8080" > "$script_dir/gitlab_url.txt"
+  echo "http://gitlab:80" > "$script_dir/gitlab_url.txt"
   echo "token-string-here123" > "$script_dir/gitlab_token.txt"
 
   echo ""
