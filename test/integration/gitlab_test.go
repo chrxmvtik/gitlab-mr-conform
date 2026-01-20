@@ -37,7 +37,7 @@ func TestMergeRequestWorkflow(t *testing.T) {
 		testutil.AssertEqual(t, mr.Title, retrievedMR.Title)
 
 		// Wait for bot to process webhook and create discussion
-		_, err = testutil.WaitForBotDiscussion(t, cfg.Client, cfg.Project.ID, mr.IID, 60*time.Second)
+		_, err = testutil.WaitForBotDiscussion(t, cfg.Client, cfg.Project.ID, mr.IID, 10*time.Second)
 		testutil.AssertNoErrors(t, err)
 
 		t.Logf("✓ Created MR: %s (IID: %d)", mr.Title, mr.IID)
