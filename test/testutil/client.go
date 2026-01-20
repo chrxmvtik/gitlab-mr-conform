@@ -155,7 +155,6 @@ func (c *TestClient) GetMRConformDiscussion(projectID interface{}, mrIID int) (*
 	for _, discussion := range discussions {
 		// Checks for "🧾 Merge Request Compliance Report"
 		for _, note := range discussion.Notes {
-			fmt.Printf("Discussion: %s", note.Body)
 			if note.System || note.Body == "" {
 				continue
 			}
