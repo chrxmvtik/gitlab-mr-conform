@@ -220,7 +220,7 @@ func WaitForBotDiscussion(t *testing.T, client *TestClient, projectID interface{
 		attemptCount++
 		discussion, err := client.GetMRConformDiscussion(projectID, mrIID)
 		if err == nil && discussion != nil {
-			t.Logf("Found bot discussion after %d attempts", attemptCount)
+			// t.Logf("Found bot discussion after %d attempts", attemptCount)
 			return discussion, nil
 		}
 
