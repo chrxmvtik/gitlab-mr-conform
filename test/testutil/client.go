@@ -23,7 +23,7 @@ func NewTestClient(token, baseURL string, insecure bool) (*TestClient, error) {
 	}
 
 	// Create a direct GitLab API client for test operations
-	apiClient, err := gitlabapi.NewClient(token, gitlabapi.WithBaseURL(baseURL), gitlabapi.WithCustomRetryMax(10))
+	apiClient, err := gitlabapi.NewClient(token, gitlabapi.WithBaseURL(baseURL), gitlabapi.WithCustomRetryMax(20))
 	if err != nil {
 		return nil, fmt.Errorf("failed to create GitLab API client: %w", err)
 	}

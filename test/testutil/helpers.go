@@ -227,11 +227,6 @@ func WaitForBotDiscussion(t *testing.T, client *TestClient, projectID interface{
 		// Store the last error for debugging
 		lastErr = err
 
-		// Log periodically to help debug
-		if attemptCount%10 == 0 {
-			t.Logf("timestamp: %s Attempt %d: still waiting for bot discussion (last error: %v)", time.Now().UTC().Format(time.RFC3339), attemptCount, err)
-		}
-
 		time.Sleep(500 * time.Millisecond)
 	}
 
