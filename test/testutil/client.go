@@ -23,7 +23,7 @@ func NewTestClient(token, baseURL string, insecure bool) (*TestClient, error) {
 	}
 
 	// Create a direct GitLab API client for test operations
-	apiClient, err := gitlabapi.NewClient(token, gitlabapi.WithBaseURL(baseURL), gitlabapi.WithCustomRetryMax(20))
+	apiClient, err := gitlabapi.NewClient(token, gitlabapi.WithBaseURL(baseURL), gitlabapi.WithCustomRetryMax(100))
 	if err != nil {
 		return nil, fmt.Errorf("failed to create GitLab API client: %w", err)
 	}
@@ -175,7 +175,7 @@ func (c *TestClient) GetMRConformDiscussion(projectID interface{}, mrIID int) (*
 	}
 
 	for _, discussion := range discussions {
-		if discussion.Notes == nil || len(discussion.Notes) == 0 {
+		if len(discussion.Notes) == 0 {
 			continue
 		}
 
