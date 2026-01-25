@@ -36,6 +36,9 @@ jobs:
       - name: Start test environment
         run: |
           make test-env-start
+      - name: Stabilize environment
+        run: |
+          sleep 30
       - name: Run integration tests
         run: |
           make test-integration
