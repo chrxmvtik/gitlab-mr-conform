@@ -4,7 +4,7 @@ go 1.24.4
 
 require (
 	github.com/bmatcuk/doublestar v1.3.4
-	github.com/bmatcuk/doublestar/v4 v4.9.1
+	github.com/bmatcuk/doublestar/v4 v4.10.0
 	github.com/gin-gonic/gin v1.10.1
 	github.com/go-redis/redis/v8 v8.11.5
 	github.com/gobwas/glob v0.2.3
