@@ -195,6 +195,7 @@ func (c *Client) SetCommitStatus(projectID interface{}, sha, state, description 
 	opts := &gitlab.SetCommitStatusOptions{
 		State:       gitlab.BuildStateValue(state),
 		Description: &description,
+		Name:        gitlab.Ptr("MR Conform"),
 	}
 
 	_, _, err := c.client.Commits.SetCommitStatus(projectID, sha, opts)
