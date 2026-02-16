@@ -249,6 +249,42 @@ make run
 make build
 ```
 
+## 🧪 Testing
+
+The project includes integration tests that run against a real GitLab instance.
+
+### Quick Start
+
+```bash
+# Start test environment (GitLab + Bot)
+# Builds MR Conform Bot image and starts GitLab container
+# Gitlab starts can take a few minutes on first run
+make test-env-start
+
+# Run integration tests
+make test-integration
+
+# Stop test environment
+make test-env-stop
+```
+
+### Available Test Commands
+
+| Command | Description |
+|---------|-------------|
+| `make test-env-start` | Start GitLab and bot containers |
+| `make test-env-stop` | Stop all containers and clean up |
+| `make test-env-restart` | Stop and start the environment |
+| `make test-env-status` | Show status of all components |
+| `make test-env-logs` | Show recent logs from containers | 
+| `make test-integration` | Run integration tests against test environment |
+
+### Test Structure
+
+- **Unit Tests** (`internal/` and `pkg/`) - Component-level tests
+- **Integration Tests** (`test/integration/`) - Tests against real GitLab API
+- **Test Utilities** (`test/testutil/`) - Helpers for test setup and assertions
+
 ## 🔍 Troubleshooting
 
 **Webhook not receiving events?**

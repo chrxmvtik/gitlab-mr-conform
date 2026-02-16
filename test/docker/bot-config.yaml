@@ -1,0 +1,12 @@
+server:
+  port: 8081
+  host: "0.0.0.0"
+  log_level: debug
+
+gitlab:
+  # Token set via GITLAB_MR_BOT_GITLAB_TOKEN environment variable
+  # Uses localhost since bot runs with host network
+  base_url: "http://localhost"
+
+queue:
+  enabled: false
