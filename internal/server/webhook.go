@@ -67,8 +67,8 @@ func (s *Server) HandleWebhook(c *gin.Context) {
 			"mrId", parsedEvent.ObjectAttributes.IID,
 			"action", parsedEvent.ObjectAttributes.Action)
 
-		pID := strconv.Itoa(parsedEvent.Project.ID)
-		mrID := strconv.Itoa(parsedEvent.ObjectAttributes.IID)
+		pID := strconv.FormatInt(int64(parsedEvent.Project.ID), 10)
+		mrID := strconv.FormatInt(int64(parsedEvent.ObjectAttributes.IID), 10)
 		// Enqueue the webhook for processing
 		jobID, err := s.queueManager.EnqueueWebhook(c, pID, mrID, parsedEvent.EventType, parsedEvent)
 		if err != nil {
@@ -86,7 +86,7 @@ func (s *Server) HandleWebhook(c *gin.Context) {
 func (s *Server) ProcessJob(c context.Context, job *queue.WebhookJob) error {
 	s.logger.Info("Processing webhook for MR", "jobId", job.ID, "webhookType", job.WebhookType, "projectId", job.ProjectID, "mrId", job.MergeRequestIID)
 
-	mrID, err := strconv.Atoi(job.MergeRequestIID)
+	mrID, err := strconv.ParseInt(job.MergeRequestIID, 10, 64)
 	if err != nil {
 		fmt.Println("Error converting string to int:", err)
 	}
