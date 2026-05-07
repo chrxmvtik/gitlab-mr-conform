@@ -1,38 +1,15 @@
-# Multi-stage build for Go bot application
-# Supports both AMD64 and ARM64 architectures
+ARG REPOSITOI_LOCAL_ZONE_HOSTNAME
+ARG PLACIDE_RELEASES_DOCKER_REPO
+ARG GO_IMAGE_TAG=1.25.9-alpine
+# renovate: datasource=docker depName=neufhs-docker-releases.artifactory-zci.enedis.fr/certificates
+ARG CERTIFICATES_IMAGE_TAG=cert-enedis-1
 
-FROM --platform=$BUILDPLATFORM golang:1.25.9-alpine AS build
+FROM ${PLACIDE_RELEASES_DOCKER_REPO}.${REPOSITOI_LOCAL_ZONE_HOSTNAME}/certificates:${CERTIFICATES_IMAGE_TAG} AS certificates
 
-# Set working directory
-WORKDIR /app
+FROM remote-docker-hub.${REPOSITOI_LOCAL_ZONE_HOSTNAME}/golang:${GO_IMAGE_TAG}
 
-# Copy go mod files
-COPY go.mod go.sum ./
+ARG REPOSITOI_LOCAL_ZONE_HOSTNAME
 
-# Download dependencies
-RUN go mod download
+USER root
 
-# Copy source code
-COPY . .
-
-# Build arguments for cross-compilation
-ARG TARGETOS=linux
-ARG TARGETARCH
-
-# Build the application
-RUN CGO_ENABLED=0 GOOS=$TARGETOS GOARCH=$TARGETARCH go build \
-    -ldflags='-w -s' \
-    -o bot ./cmd/bot
-
-# Final stage - minimal distroless image
-FROM --platform=$TARGETPLATFORM gcr.io/distroless/static-debian12:nonroot
-
-# Copy binary and configs from build stage
-COPY --from=build --chown=nonroot:nonroot /app/bot /
-COPY --from=build --chown=nonroot:nonroot /app/configs ./configs
-
-# Use nonroot user (already defined in distroless image)
-USER nonroot
-
-# Run the bot application
-CMD ["/bot"]
+SHELL ["/bin/ash", "-eo", "pipefail", "-c"]

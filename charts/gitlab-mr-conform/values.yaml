@@ -2,7 +2,7 @@
 replicaCount: 2
 
 image:
-  repository: ghcr.io/chrxmvtik/gitlab-mr-conform
+  repository: neufhs-docker-stages.repositoi.zca.enedis.fr/gitlab-mr-conform
   # tag: main
   pullPolicy: IfNotPresent
 
@@ -40,7 +40,7 @@ route:
     labels: {}
 
     hostnames:
-      - my-filter.example.com
+      - https://placide.enedis.fr/
     parentRefs:
       - name: my-gateway
         namespace: my-gateway
@@ -53,7 +53,7 @@ route:
     matches:
       - path:
           type: PathPrefix
-          value: /webhook
+          value: /webhook/gitlab-mr-conform
 
     ## Filters define the filters that are applied to requests that match this rule.
     filters: []
@@ -116,8 +116,8 @@ secret:
   # Secret data (base64 encoded values)
   data:
     # Variables are optional, so you can skip for example redisPassword, if not used.
-    gitlabToken: "" # base64 encoded GitLab token
-    webhookSecret: "" # base64 encoded webhook secret
+    gitlabToken: "Z2xwYXQtSkVLOTVkU1pTeldpTTlWd29XOUxORzg2TVFwMU9tOWpOZ2suMDEuMHowYmpxeTNx" # base64 encoded GitLab token
+    webhookSecret: "cFBUNmJVNk9jSkVqdWRVeGp0OTU=" # base64 encoded webhook secret
     redisPassword: "" # base64 encoded Redis password, if queue enabled
     asanaToken: "" # base64 encoded Asana API token, if Asana integration enabled
 
@@ -154,7 +154,7 @@ config:
     gitlab:
       # Note: GITLAB_MR_BOT_GITLAB_TOKEN and GITLAB_MR_BOT_GITLAB_SECRET_TOKEN
       # are set via environment variables from the secret
-      base_url: "https://gitlab.com"
+      base_url: "https://placide.enedis.fr"
       insecure: false # defaults to false if not specified
     queue:
       enabled: false
