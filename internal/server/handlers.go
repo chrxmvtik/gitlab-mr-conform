@@ -114,7 +114,7 @@ func (s *Server) handleStatus(c *gin.Context) {
 	projectID := c.Param("project_id")
 	mrIDStr := c.Param("mr_id")
 
-	mrID, err := strconv.Atoi(mrIDStr)
+	mrID, err := strconv.ParseInt(mrIDStr, 10, 64)
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid MR ID"})
 		return

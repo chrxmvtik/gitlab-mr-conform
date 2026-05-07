@@ -36,7 +36,7 @@ func TruncateCommitMessage(msg string, maxLen int) string {
 }
 
 type ApprovalInfo struct {
-	UserID    int
+	UserID    int64
 	Username  string
 	Status    string // "approved" or "unapproved"
 	UpdatedAt *time.Time
@@ -44,5 +44,5 @@ type ApprovalInfo struct {
 
 type Approvals struct {
 	ApprovalsCount int
-	ApprovalsInfo  map[int]ApprovalInfo
+	ApprovalsInfo  map[int64]ApprovalInfo
 }

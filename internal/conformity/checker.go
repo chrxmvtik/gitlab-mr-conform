@@ -48,7 +48,7 @@ func NewChecker(defaultConfig config.RulesConfig, client *gitlab.Client, log *lo
 	}
 }
 
-func (c *Checker) CheckMergeRequest(projectID interface{}, mrID int) (*CheckResult, error) {
+func (c *Checker) CheckMergeRequest(projectID interface{}, mrID int64) (*CheckResult, error) {
 	// Load configuration (repository or default)
 	finalConfig, err := c.configLoader.LoadConfig(projectID)
 	if err != nil {
@@ -97,7 +97,7 @@ func (c *Checker) CheckMergeRequest(projectID interface{}, mrID int) (*CheckResu
 }
 
 // fetchMergeRequestData retrieves merge request and commit data
-func (c *Checker) fetchMergeRequestData(projectID interface{}, mrID int, finalConfig config.RulesConfig) (*gitlabapi.MergeRequest, []*gitlabapi.Commit, *common.Approvals, error) {
+func (c *Checker) fetchMergeRequestData(projectID interface{}, mrID int64, finalConfig config.RulesConfig) (*gitlabapi.MergeRequest, []*gitlabapi.Commit, *common.Approvals, error) {
 	// Get merge request details
 	mr, err := c.gitlabClient.GetMergeRequest(projectID, mrID)
 	if err != nil {
@@ -144,7 +144,7 @@ func (c *Checker) executeRuleChecks(rulesList []rules.Rule, mr *gitlabapi.MergeR
 	return failures
 }
 
-func (c *Checker) getCodeowners(projectID interface{}, mrID int, members []*gitlabapi.ProjectMember) ([]*codeowners.PatternGroup, error) {
+func (c *Checker) getCodeowners(projectID interface{}, mrID int64, members []*gitlabapi.ProjectMember) ([]*codeowners.PatternGroup, error) {
 	// Try to get CODEOWNERS file from repository
 	co, err := c.gitlabClient.GetCodeownersFile(projectID)
 	if err != nil {

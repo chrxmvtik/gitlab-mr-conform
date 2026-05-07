@@ -46,7 +46,7 @@ func NewClient(token, baseURL string, insecure bool) (*Client, error) {
 	return &Client{client: client}, nil
 }
 
-func (c *Client) GetMergeRequest(projectID interface{}, mrID int) (*gitlab.MergeRequest, error) {
+func (c *Client) GetMergeRequest(projectID interface{}, mrID int64) (*gitlab.MergeRequest, error) {
 	mr, _, err := c.client.MergeRequests.GetMergeRequest(projectID, mrID, nil)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get merge request: %w", err)
@@ -54,14 +54,14 @@ func (c *Client) GetMergeRequest(projectID interface{}, mrID int) (*gitlab.Merge
 	return mr, nil
 }
 
-func (c *Client) ListMergeRequestApprovals(projectID interface{}, mrID int, creatorID int, excludeCreator bool) (*common.Approvals, error) {
+func (c *Client) ListMergeRequestApprovals(projectID interface{}, mrID int64, creatorID int64, excludeCreator bool) (*common.Approvals, error) {
 	// List notes
 	notes, err := c.getAllNotes(projectID, mrID)
 	if err != nil {
 		return nil, fmt.Errorf("failed to list notes: %w", err)
 	}
 	// Map to store latest approval status for each user
-	userApprovals := make(map[int]common.ApprovalInfo)
+	userApprovals := make(map[int64]common.ApprovalInfo)
 
 	for _, note := range notes {
 		// Check if note is system-generated and contains approval information
@@ -114,7 +114,7 @@ func (c *Client) ListMergeRequestApprovals(projectID interface{}, mrID int, crea
 	return &approvals, nil
 }
 
-func (c *Client) ListMergeRequestCommits(projectID interface{}, mrID int) ([]*gitlab.Commit, error) {
+func (c *Client) ListMergeRequestCommits(projectID interface{}, mrID int64) ([]*gitlab.Commit, error) {
 	commits, _, err := c.client.MergeRequests.GetMergeRequestCommits(projectID, mrID, nil)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get merge request commits: %w", err)
@@ -122,7 +122,7 @@ func (c *Client) ListMergeRequestCommits(projectID interface{}, mrID int) ([]*gi
 	return commits, nil
 }
 
-func (c *Client) CreateUpdateMergeRequestDiscussion(projectID interface{}, mrID int, note string, passed bool) error {
+func (c *Client) CreateUpdateMergeRequestDiscussion(projectID interface{}, mrID int64, note string, passed bool) error {
 	identifier := "Merge Request Compliance Report"
 
 	// List discussions
@@ -180,7 +180,7 @@ func (c *Client) CreateUpdateMergeRequestDiscussion(projectID interface{}, mrID 
 	return nil
 }
 
-func (c *Client) CreateMergeRequestNote(projectID interface{}, mrID int, note string) error {
+func (c *Client) CreateMergeRequestNote(projectID interface{}, mrID int64, note string) error {
 	opts := &gitlab.CreateMergeRequestNoteOptions{
 		Body: &note,
 	}
@@ -220,12 +220,13 @@ func (c *Client) GetConfigFile(projectID interface{}) (*gitlab.File, error) {
 	return cfg, nil
 }
 
-func (c *Client) getAllDiscussions(projectID interface{}, mrID int) ([]*gitlab.Discussion, error) {
+func (c *Client) getAllDiscussions(projectID interface{}, mrID int64) ([]*gitlab.Discussion, error) {
 	var allDiscussions []*gitlab.Discussion
 	opt := &gitlab.ListMergeRequestDiscussionsOptions{
-		PerPage: 100,
+		ListOptions: gitlab.ListOptions{
+			PerPage: 100,
+		},
 	}
-
 	for {
 		discussions, resp, err := c.client.Discussions.ListMergeRequestDiscussions(projectID, mrID, opt)
 		if err != nil {
@@ -243,7 +244,7 @@ func (c *Client) getAllDiscussions(projectID interface{}, mrID int) ([]*gitlab.D
 	return allDiscussions, nil
 }
 
-func (c *Client) getAllNotes(projectID interface{}, mrID int) ([]*gitlab.Note, error) {
+func (c *Client) getAllNotes(projectID interface{}, mrID int64) ([]*gitlab.Note, error) {
 	var allNotes []*gitlab.Note
 	opt := &gitlab.ListMergeRequestNotesOptions{ListOptions: gitlab.ListOptions{PerPage: 100}}
 
@@ -264,7 +265,7 @@ func (c *Client) getAllNotes(projectID interface{}, mrID int) ([]*gitlab.Note, e
 	return allNotes, nil
 }
 
-func (c *Client) GetAllDiffsPaths(projectID interface{}, mrID int) ([]string, error) {
+func (c *Client) GetAllDiffsPaths(projectID interface{}, mrID int64) ([]string, error) {
 	var allDiffs []*gitlab.MergeRequestDiff
 	opt := &gitlab.ListMergeRequestDiffsOptions{ListOptions: gitlab.ListOptions{PerPage: 20}}
 
