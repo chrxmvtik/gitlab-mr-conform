@@ -1,6 +1,6 @@
 module gitlab-mr-conformity-bot
 
-go 1.24.4
+go 1.25.9
 
 require (
 	github.com/bmatcuk/doublestar v1.3.4

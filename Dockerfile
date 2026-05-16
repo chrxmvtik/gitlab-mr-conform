@@ -1,7 +1,7 @@
 # Multi-stage build for Go bot application
 # Supports both AMD64 and ARM64 architectures
 
-FROM --platform=$BUILDPLATFORM golang:1.24.4-alpine AS build
+FROM --platform=$BUILDPLATFORM golang:1.25.9-alpine AS build
 
 # Set working directory
 WORKDIR /app
@@ -25,7 +25,7 @@ RUN CGO_ENABLED=0 GOOS=$TARGETOS GOARCH=$TARGETARCH go build \
     -o bot ./cmd/bot
 
 # Final stage - minimal distroless image
-FROM --platform=$TARGETPLATFORM gcr.io/distroless/static-debian12:nonroot
+FROM --platform=$TARGETPLATFORM gcr.io/distroless/static-debian13:nonroot
 
 # Copy binary and configs from build stage
 COPY --from=build --chown=nonroot:nonroot /app/bot /
