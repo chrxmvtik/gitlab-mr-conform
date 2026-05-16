@@ -78,7 +78,7 @@ spec:
           {{- end }}
           volumeMounts:
             - name: config
-              mountPath: /home/nonroot/configs/config.yaml
+              mountPath: /app/configs/config.yaml
               subPath: config.yaml
               readOnly: true
           {{- with .Values.livenessProbe }}
