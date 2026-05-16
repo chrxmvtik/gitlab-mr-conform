@@ -2,6 +2,32 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.5.2](https://github.com/chrxmvtik/gitlab-mr-conform/compare/v0.5.1..v0.5.2) - 2026-05-16
+
+### 🐛 Bug Fixes
+
+- [``60a9c3f``](https://github.com/chrxmvtik/gitlab-mr-conform/commit/60a9c3f73ddcc4fbcd5b77150c348f021efe0454): config path search ([#79](https://github.com/chrxmvtik/gitlab-mr-conform/issues/79)) by @chrxmvtik in #79
+
+
+### ⬆️ Dependencies
+
+- [``6eadd3e``](https://github.com/chrxmvtik/gitlab-mr-conform/commit/6eadd3ef3259ed3e9021eeb5c8ca927d604a1730): **(deps)** bump github.com/gin-gonic/gin from 1.10.1 to 1.12.0 ([#77](https://github.com/chrxmvtik/gitlab-mr-conform/issues/77)) by @dependabot[bot] in #77
+
+- [``e93bbb0``](https://github.com/chrxmvtik/gitlab-mr-conform/commit/e93bbb0f8322594e3ff0a84255f00a876a9f82e3): **(deps)** bump github.com/bmatcuk/doublestar/v4 from 4.9.1 to 4.10.0 ([#68](https://github.com/chrxmvtik/gitlab-mr-conform/issues/68)) by @dependabot[bot] in #68
+
+- [``0e89d96``](https://github.com/chrxmvtik/gitlab-mr-conform/commit/0e89d9653c01d6227a6635a95797fa57b07432ba): **(deps)** bump github.com/spf13/viper from 1.20.1 to 1.21.0 ([#44](https://github.com/chrxmvtik/gitlab-mr-conform/issues/44)) by @dependabot[bot] in #44
+
+- [``3e959f2``](https://github.com/chrxmvtik/gitlab-mr-conform/commit/3e959f25c76c979a3871202536475905e2810b9a): **(deps)** bump golang to 1.25.9 ([#78](https://github.com/chrxmvtik/gitlab-mr-conform/issues/78)) by @chrxmvtik in #78
+
+- [``0c61844``](https://github.com/chrxmvtik/gitlab-mr-conform/commit/0c61844b8eb13cb6f69945901a7805b28cc22a7d): **(deps)** bump gitlab.com/gitlab-org/api/client-go from 0.142.5 to 1.46.0 ([#76](https://github.com/chrxmvtik/gitlab-mr-conform/issues/76)) by @chrxmvtik in #76
+
+
+
+
+
+**Full Changelog**: https://github.com/chrxmvtik/gitlab-mr-conform/compare/v0.5.1...v0.5.2
+
+
 ## [0.5.1](https://github.com/chrxmvtik/gitlab-mr-conform/compare/v0.5.0..v0.5.1) - 2026-02-12
 
 ### 🐛 Bug Fixes
