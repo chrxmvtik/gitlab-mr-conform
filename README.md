@@ -207,7 +207,7 @@ services:
       # Optional: For Asana API validation
       - GITLAB_MR_BOT_INTEGRATIONS_ASANA_API_TOKEN=${ASANA_TOKEN}
     volumes:
-      - ./config.yaml:/app/config.yaml
+      - ./config.yaml:/app/configs/config.yaml
 ```
 
 **Best Practice:** Use Docker secrets instead of environment variables for production:

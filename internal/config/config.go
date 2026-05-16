@@ -142,6 +142,7 @@ type ConfigLoader struct {
 func Load() (*Config, error) {
 	viper.SetConfigName("config")
 	viper.SetConfigType("yaml")
+	viper.AddConfigPath("/app/configs")
 	viper.AddConfigPath("./configs")
 	viper.AddConfigPath(".")
 

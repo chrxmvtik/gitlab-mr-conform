@@ -10,6 +10,7 @@ on:
     branches:
       - main
       - feat/*
+      - fix/*
 
 env:
   # Use docker.io for Docker Hub if empty
