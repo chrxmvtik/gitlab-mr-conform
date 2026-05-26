@@ -19,10 +19,11 @@ type Config struct {
 	} `mapstructure:"server"`
 
 	GitLab struct {
-		Token       string `mapstructure:"token"`
-		BaseURL     string `mapstructure:"base_url"`
-		SecretToken string `mapstructure:"secret_token"`
-		Insecure    bool   `mapstructure:"insecure"`
+		Token                string `mapstructure:"token"`
+		BaseURL              string `mapstructure:"base_url"`
+		SecretToken          string `mapstructure:"secret_token"`
+		SystemHookSecretToken string `mapstructure:"system_hook_secret_token"`
+		Insecure             bool   `mapstructure:"insecure"`
 	} `mapstructure:"gitlab"`
 
 	Rules RulesConfig `mapstructure:"rules"`
