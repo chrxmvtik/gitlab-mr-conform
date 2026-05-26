@@ -116,8 +116,8 @@ secret:
   # Secret data (base64 encoded values)
   data:
     # Variables are optional, so you can skip for example redisPassword, if not used.
-    gitlabToken: "Z2xwYXQtSkVLOTVkU1pTeldpTTlWd29XOUxORzg2TVFwMU9tOWpOZ2suMDEuMHowYmpxeTNx" # base64 encoded GitLab token
-    webhookSecret: "cFBUNmJVNk9jSkVqdWRVeGp0OTU=" # base64 encoded webhook secret
+    gitlabToken: "" # base64 encoded GitLab token
+    webhookSecret: "" # base64 encoded webhook secret
     redisPassword: "" # base64 encoded Redis password, if queue enabled
     asanaToken: "" # base64 encoded Asana API token, if Asana integration enabled
 

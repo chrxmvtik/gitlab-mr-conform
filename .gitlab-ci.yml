@@ -18,12 +18,12 @@ docker-build-save:
   stage: docker-build-save
   variables:
     CONTAINER_REGISTRY_URL: neufhs-docker-stages.${REPOSITOI_LOCAL_ZONE_HOSTNAME}
-    IMAGE_NAME: gitlab-mr-conform-internal
+    IMAGE_NAME: gitlab-mr-conform
     IMAGE_TAG: 0.5.2
-    IMAGE_TARBALL_NAME: gitlab-mr-conform-internal
+    IMAGE_TARBALL_NAME: gitlab-mr-conform
     DOCKER_COMPLEMENTARY_OPTIONS: >-
       --build-arg REPOSITOI_LOCAL_ZONE_HOSTNAME=${REPOSITOI_LOCAL_ZONE_HOSTNAME}
-      --build-arg PLACIDE_RELEASES_DOCKER_REPO=${PLACIDE_RELEASES_DOCKER_REPO}
+      --build-arg PLACIDE_STAGES_DOCKER_REPO=${PLACIDE_STAGES_DOCKER_REPO}
     ARTIFACTS_EXPIRE_IN: "5 mins"
 
 trivy-scan-image:
@@ -34,16 +34,16 @@ trivy-scan-image:
     TRIVY_VIOLATIONS_SEVERITY_LEVEL: "HIGH"
     TRIVY_OPTIONS: "--severity HIGH,CRITICAL --show-suppressed"
     IMAGE_TAG: 0.5.2
-    IMAGE_TARBALL_NAME: gitlab-mr-conform-internal
+    IMAGE_TARBALL_NAME: gitlab-mr-conform
 
 docker-build-push:
   extends: .docker-build-push
   stage: docker-build-push
   variables:
     CONTAINER_REGISTRY_URL: neufhs-docker-stages.repositoi.zca.enedis.fr
-    IMAGE_NAME: gitlab-mr-conform-internal
+    IMAGE_NAME: gitlab-mr-conform
     IMAGE_TAG: 0.5.2
     USE_BUILDKIT_CACHE: 'true'
     DOCKER_COMPLEMENTARY_OPTIONS: >-
-      --build-arg REPOSITOI_LOCAL_ZONE_HOSTNAME=repositoi.zca.enedis.fr
-      --build-arg PLACIDE_RELEASES_DOCKER_REPO=${PLACIDE_RELEASES_DOCKER_REPO}
+      --build-arg REPOSITOI_LOCAL_ZONE_HOSTNAME=${REPOSITOI_ZCA_HOSTNAME}
+      --build-arg PLACIDE_STAGES_DOCKER_REPO=${PLACIDE_STAGES_DOCKER_REPO}
