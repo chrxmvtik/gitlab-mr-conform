@@ -75,6 +75,12 @@ func (s *Server) handleSystemHookNoQueue(c *gin.Context) {
 		return
 	}
 
+	if result.Skipped {
+		s.logger.Info("Skipping repository: no .mr-conform.yaml found", "project_id", projectID, "mr_iid", mrIID)
+		c.JSON(http.StatusOK, gin.H{"message": "Skipped: no .mr-conform.yaml in repository"})
+		return
+	}
+
 	if err := s.gitlabClient.CreateUpdateMergeRequestDiscussion(projectID, mrIID, result.Summary, result.Passed); err != nil {
 		s.logger.Error("Failed to post discussion",
 			"project_id", projectID,
@@ -201,6 +207,11 @@ func (s *Server) processSystemHookMergeEvent(ctx context.Context, projectID stri
 	result, err := s.checker.CheckMergeRequest(projectID, mrIID)
 	if err != nil {
 		return err
+	}
+
+	if result.Skipped {
+		s.logger.Info("Skipping repository: no .mr-conform.yaml found", "project_id", projectID, "mr_iid", mrIID)
+		return nil
 	}
 
 	if err := s.gitlabClient.CreateUpdateMergeRequestDiscussion(projectID, mrIID, result.Summary, result.Passed); err != nil {

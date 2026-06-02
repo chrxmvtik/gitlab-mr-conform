@@ -27,6 +27,7 @@ type Checker struct {
 
 type CheckResult struct {
 	Passed   bool
+	Skipped  bool
 	Failures []RuleFailure
 	Summary  string
 }
@@ -50,9 +51,15 @@ func NewChecker(defaultConfig config.RulesConfig, client *gitlab.Client, log *lo
 
 func (c *Checker) CheckMergeRequest(projectID interface{}, mrID int) (*CheckResult, error) {
 	// Load configuration (repository or default)
-	finalConfig, err := c.configLoader.LoadConfig(projectID)
+	finalConfig, presence, err := c.configLoader.LoadConfig(projectID)
 	if err != nil {
 		return nil, fmt.Errorf("failed to load configuration: %w", err)
+	}
+
+	// No .mr-conform.yaml present: skip this repository entirely.
+	if presence == config.ConfigNotFound {
+		c.logger.Info("Skipping repository: no .mr-conform.yaml found", "project_id", projectID)
+		return &CheckResult{Skipped: true}, nil
 	}
 
 	// Build rules based on configuration

@@ -2,6 +2,7 @@ package server
 
 import (
 	"bytes"
+	"encoding/base64"
 	"encoding/json"
 	"fmt"
 	"net/http"
@@ -104,6 +105,7 @@ func newTestServerWithMockGitLab(t *testing.T, cfg *config.Config, mockHandler h
 
 // defaultMockGitLabHandler returns a handler that answers common GitLab API calls with
 // minimal valid JSON so that the conformity checker can complete without errors.
+// The .mr-conform.yaml file returns 404 (not found), so the repo is skipped.
 func defaultMockGitLabHandler() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
@@ -166,6 +168,52 @@ func defaultMockGitLabHandler() http.HandlerFunc {
 	}
 }
 
+// mockGitLabHandlerWithConfigFile returns a handler like defaultMockGitLabHandler but serves
+// the given content as the .mr-conform.yaml file (base64-encoded).
+// Pass an empty string to simulate an empty (but present) config file.
+func mockGitLabHandlerWithConfigFile(content string) http.HandlerFunc {
+	encoded := base64.StdEncoding.EncodeToString([]byte(content))
+	return func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		w.Header().Set("X-Next-Page", "")
+		w.Header().Set("X-Page", "1")
+		w.Header().Set("X-Total-Pages", "1")
+
+		path := r.URL.Path
+		method := r.Method
+
+		switch {
+		case method == http.MethodGet && pathContains(path, "/notes"):
+			fmt.Fprintln(w, `[]`)
+		case method == http.MethodGet && pathContains(path, "/commits"):
+			fmt.Fprintln(w, `[{"id":"abc123","title":"test commit","author_name":"Test","created_at":"2024-01-01T00:00:00Z","message":"test commit"}]`)
+		case (method == http.MethodGet || method == http.MethodPost) && pathContains(path, "/discussions"):
+			if method == http.MethodGet {
+				fmt.Fprintln(w, `[]`)
+			} else {
+				fmt.Fprintln(w, `{"id":"disc1","notes":[{"id":1,"body":"test","resolved":false,"system":false}]}`)
+			}
+		case method == http.MethodPut && pathContains(path, "/discussions/"):
+			fmt.Fprintln(w, `{"id":"disc1","resolved":true}`)
+		case method == http.MethodGet && pathContains(path, "/diffs"):
+			fmt.Fprintln(w, `[]`)
+		case method == http.MethodGet && pathContains(path, "/merge_requests/"):
+			fmt.Fprintln(w, `{"id":10,"iid":1,"title":"Test MR","state":"opened","author":{"id":1,"username":"testuser","name":"Test User"},"description":"test description"}`)
+		case method == http.MethodPost && pathContains(path, "/statuses/"):
+			fmt.Fprintln(w, `{"id":1,"sha":"abc123","status":"success"}`)
+		// Serve the .mr-conform.yaml config file
+		case method == http.MethodGet && pathContains(path, "/repository/files/"):
+			fmt.Fprintf(w, `{"file_name":".mr-conform.yaml","content":"%s","encoding":"base64"}`, encoded)
+		case method == http.MethodGet && pathContains(path, "/api/v4/projects/"):
+			fmt.Fprintln(w, `{"id":1,"name":"Test","default_branch":"main","path_with_namespace":"group/test"}`)
+		default:
+			w.WriteHeader(http.StatusNotFound)
+			fmt.Fprintf(w, `{"message":"mock: unhandled %s %s"}`, method, path)
+		}
+	}
+}
+
+
 func pathContains(path, sub string) bool {
 	for i := 0; i <= len(path)-len(sub); i++ {
 		if path[i:i+len(sub)] == sub {
@@ -202,8 +250,8 @@ func invokeHandler(srv *Server, req *http.Request) *httptest.ResponseRecorder {
 
 func TestHandleSystemHookNoQueue_ValidMergeRequestEvent(t *testing.T) {
 	cfg := &config.Config{}
-	// all rules disabled — conformity check will pass trivially
-	srv, teardown := newTestServerWithMockGitLab(t, cfg, nil)
+	// Use a handler that serves a populated .mr-conform.yaml so the request is fully processed.
+	srv, teardown := newTestServerWithMockGitLab(t, cfg, mockGitLabHandlerWithConfigFile("rules:\n  title:\n    enabled: false\n"))
 	defer teardown()
 
 	payload := systemHookMRPayload(1, 1, "open", "abc123sha")
@@ -251,7 +299,8 @@ func TestHandleSystemHookNoQueue_InvalidToken(t *testing.T) {
 func TestHandleSystemHookNoQueue_ValidTokenAccepted(t *testing.T) {
 	cfg := &config.Config{}
 	cfg.GitLab.SystemHookSecretToken = "my-secret"
-	srv, teardown := newTestServerWithMockGitLab(t, cfg, nil)
+	// Use a handler that serves a populated .mr-conform.yaml so the request is fully processed.
+	srv, teardown := newTestServerWithMockGitLab(t, cfg, mockGitLabHandlerWithConfigFile("rules:\n  title:\n    enabled: false\n"))
 	defer teardown()
 
 	payload := systemHookMRPayload(1, 1, "open", "abc123sha")
@@ -347,5 +396,57 @@ func TestIsRelevantMergeAction(t *testing.T) {
 				t.Errorf("isRelevantMergeAction(%q) = %v, want %v", tt.action, got, tt.expected)
 			}
 		})
+	}
+}
+
+// TestHandleSystemHookNoQueue_NoConfigFile_Skipped verifies that a repository without a
+// .mr-conform.yaml file is silently skipped (200, no discussion or commit status posted).
+func TestHandleSystemHookNoQueue_NoConfigFile_Skipped(t *testing.T) {
+	cfg := &config.Config{}
+	// defaultMockGitLabHandler returns 404 for /repository/files/ → repo is skipped.
+	srv, teardown := newTestServerWithMockGitLab(t, cfg, nil)
+	defer teardown()
+
+	payload := systemHookMRPayload(1, 1, "open", "abc123sha")
+	req := newTestRequest(payload, "")
+
+	w := invokeHandler(srv, req)
+
+	if w.Code != http.StatusOK {
+		t.Errorf("expected 200, got %d — body: %s", w.Code, w.Body.String())
+	}
+
+	var resp map[string]interface{}
+	if err := json.NewDecoder(w.Body).Decode(&resp); err != nil {
+		t.Fatalf("failed to decode response: %v", err)
+	}
+	if resp["message"] != "Skipped: no .mr-conform.yaml in repository" {
+		t.Errorf("expected skip message, got: %v", resp["message"])
+	}
+}
+
+// TestHandleSystemHookNoQueue_EmptyConfigFile_UsesDefaults verifies that a repository with an
+// empty .mr-conform.yaml falls back to the global default configuration and is processed normally.
+func TestHandleSystemHookNoQueue_EmptyConfigFile_UsesDefaults(t *testing.T) {
+	cfg := &config.Config{}
+	// Serve an empty .mr-conform.yaml — should use global defaults and process the MR.
+	srv, teardown := newTestServerWithMockGitLab(t, cfg, mockGitLabHandlerWithConfigFile(""))
+	defer teardown()
+
+	payload := systemHookMRPayload(1, 1, "open", "abc123sha")
+	req := newTestRequest(payload, "")
+
+	w := invokeHandler(srv, req)
+
+	if w.Code != http.StatusOK {
+		t.Errorf("expected 200, got %d — body: %s", w.Code, w.Body.String())
+	}
+
+	var resp map[string]interface{}
+	if err := json.NewDecoder(w.Body).Decode(&resp); err != nil {
+		t.Fatalf("failed to decode response: %v", err)
+	}
+	if resp["message"] != "Processed successfully" {
+		t.Errorf("expected 'Processed successfully', got: %v", resp["message"])
 	}
 }

@@ -102,6 +102,13 @@ func (s *Server) ProcessJob(c context.Context, job *queue.WebhookJob) error {
 		return err
 	}
 
+	if result.Skipped {
+		s.logger.Info("Skipping repository: no .mr-conform.yaml found",
+			"jobId", job.ID,
+			"projectId", job.ProjectID)
+		return nil
+	}
+
 	// Post discussion with results
 	if err := s.gitlabClient.CreateUpdateMergeRequestDiscussion(job.ProjectID, mrID, result.Summary, result.Passed); err != nil {
 		s.logger.Error("Failed to post discussion",

@@ -85,6 +85,14 @@ func (s *Server) handleWebhookNoQueue(c *gin.Context) {
 			return
 		}
 
+		if result.Skipped {
+			s.logger.Info("Skipping repository: no .mr-conform.yaml found",
+				"project_id", parsedEvent.Project.ID,
+				"mr_id", parsedEvent.ObjectAttributes.IID)
+			c.JSON(http.StatusOK, gin.H{"message": "Skipped: no .mr-conform.yaml in repository"})
+			return
+		}
+
 		// Post discussion with results
 		if err := s.gitlabClient.CreateUpdateMergeRequestDiscussion(parsedEvent.Project.ID, parsedEvent.ObjectAttributes.IID, result.Summary, result.Passed); err != nil {
 			s.logger.Error("Failed to post discussion", "error", err)
@@ -124,6 +132,11 @@ func (s *Server) handleStatus(c *gin.Context) {
 	if err != nil {
 		s.logger.Error("Failed to check merge request", "error", err)
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Check failed"})
+		return
+	}
+
+	if result.Skipped {
+		c.JSON(http.StatusOK, gin.H{"message": "Skipped: no .mr-conform.yaml in repository"})
 		return
 	}
 
