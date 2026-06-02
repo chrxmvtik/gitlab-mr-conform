@@ -19,7 +19,7 @@ docker-build-save:
   variables:
     CONTAINER_REGISTRY_URL: neufhs-docker-stages.${REPOSITOI_LOCAL_ZONE_HOSTNAME}
     IMAGE_NAME: gitlab-mr-conform
-    IMAGE_TAG: 0.5.2
+    IMAGE_TAG: 0.5.3
     IMAGE_TARBALL_NAME: gitlab-mr-conform
     DOCKER_COMPLEMENTARY_OPTIONS: >-
       --build-arg REPOSITOI_LOCAL_ZONE_HOSTNAME=${REPOSITOI_LOCAL_ZONE_HOSTNAME}
@@ -33,7 +33,7 @@ trivy-scan-image:
   variables:
     TRIVY_VIOLATIONS_SEVERITY_LEVEL: "HIGH"
     TRIVY_OPTIONS: "--severity HIGH,CRITICAL --show-suppressed"
-    IMAGE_TAG: 0.5.2
+    IMAGE_TAG: 0.5.3
     IMAGE_TARBALL_NAME: gitlab-mr-conform
 
 docker-build-push:
@@ -42,7 +42,7 @@ docker-build-push:
   variables:
     CONTAINER_REGISTRY_URL: neufhs-docker-stages.repositoi.zca.enedis.fr
     IMAGE_NAME: gitlab-mr-conform
-    IMAGE_TAG: 0.5.2
+    IMAGE_TAG: 0.5.3
     USE_BUILDKIT_CACHE: 'true'
     DOCKER_COMPLEMENTARY_OPTIONS: >-
       --build-arg REPOSITOI_LOCAL_ZONE_HOSTNAME=${REPOSITOI_ZCA_HOSTNAME}

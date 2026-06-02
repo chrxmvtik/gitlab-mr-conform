@@ -133,6 +133,18 @@ type AsanaValidatorConfig struct {
 	ValidateExistence bool     `mapstructure:"validate_existence"`
 }
 
+// ConfigPresence describes whether a .mr-conform.yaml file was found in the repository.
+type ConfigPresence int
+
+const (
+	// ConfigNotFound means the file does not exist; the repo should be skipped entirely.
+	ConfigNotFound ConfigPresence = iota
+	// ConfigEmpty means the file exists but is empty or whitespace-only; use the global default config.
+	ConfigEmpty
+	// ConfigPopulated means the file exists and contains configuration; use the repository config.
+	ConfigPopulated
+)
+
 // ConfigLoader handles loading and merging configurations
 type ConfigLoader struct {
 	defaultConfig RulesConfig
@@ -191,60 +203,66 @@ func NewConfigLoader(defaultConfig RulesConfig, client *gitlab.Client, log *logg
 	}
 }
 
-// LoadConfig loads configuration for a project, trying repository config first, then falling back to default
-func (cl *ConfigLoader) LoadConfig(projectID interface{}) (RulesConfig, error) {
-	repoConfig, err := cl.loadRepositoryConfig(projectID)
+// LoadConfig loads configuration for a project, trying repository config first, then falling back to default.
+// It also returns a ConfigPresence value so callers can decide whether to process the repository at all.
+func (cl *ConfigLoader) LoadConfig(projectID interface{}) (RulesConfig, ConfigPresence, error) {
+	repoConfig, presence, err := cl.loadRepositoryConfig(projectID)
 	if err != nil {
-		cl.logger.Debug("Using default configuration", "reason", err.Error())
+		return cl.defaultConfig, ConfigNotFound, fmt.Errorf("failed to load repository config: %w", err)
 	}
 
-	return cl.selectConfig(repoConfig), nil
+	switch presence {
+	case ConfigNotFound:
+		cl.logger.Debug("No .mr-conform.yaml found, skipping repository")
+		return cl.defaultConfig, ConfigNotFound, nil
+	case ConfigEmpty:
+		cl.logger.Info("Empty .mr-conform.yaml found, using default configuration")
+		return cl.defaultConfig, ConfigEmpty, nil
+	default:
+		cl.logger.Debug("Using repository configuration from .mr-conform.yaml")
+		return *repoConfig, ConfigPopulated, nil
+	}
 }
 
-// loadRepositoryConfig attempts to load config from repository, returns nil if not found or invalid
-func (cl *ConfigLoader) loadRepositoryConfig(projectID interface{}) (*RulesConfig, error) {
-	// Try to get config file from repository
+// loadRepositoryConfig attempts to load config from repository.
+// Returns (nil, ConfigNotFound, nil) if the file is absent,
+// (nil, ConfigEmpty, nil) if the file exists but is empty,
+// or (*RulesConfig, ConfigPopulated, nil) if the file has content.
+func (cl *ConfigLoader) loadRepositoryConfig(projectID interface{}) (*RulesConfig, ConfigPresence, error) {
 	cfg, err := cl.gitlabClient.GetConfigFile(projectID)
 	if err != nil {
-		cl.logger.Debug("No config file found in repository, using default config", "error", err)
-		return nil, err
+		cl.logger.Debug("No .mr-conform.yaml found in repository", "error", err)
+		return nil, ConfigNotFound, nil
 	}
 
 	// Decode the base64 content
 	decoded, err := base64.StdEncoding.DecodeString(cfg.Content)
 	if err != nil {
-		cl.logger.Warn("Failed to decode config file from repository, using default config", "error", err)
-		return nil, fmt.Errorf("failed to decode config: %w", err)
+		cl.logger.Warn("Failed to decode .mr-conform.yaml, using default config", "error", err)
+		return nil, ConfigNotFound, fmt.Errorf("failed to decode config: %w", err)
+	}
+
+	// Empty file → use default config
+	if len(strings.TrimSpace(string(decoded))) == 0 {
+		cl.logger.Debug(".mr-conform.yaml is empty, using default configuration")
+		return nil, ConfigEmpty, nil
 	}
 
 	// Create a new viper instance to avoid global state conflicts
 	v := viper.New()
 	v.SetConfigType("yaml")
 
-	err = v.ReadConfig(strings.NewReader(string(decoded)))
-	if err != nil {
-		cl.logger.Warn("Failed to parse config file from repository, using default config", "error", err)
-		return nil, fmt.Errorf("failed to parse config: %w", err)
+	if err = v.ReadConfig(strings.NewReader(string(decoded))); err != nil {
+		cl.logger.Warn("Failed to parse .mr-conform.yaml, using default config", "error", err)
+		return nil, ConfigNotFound, fmt.Errorf("failed to parse config: %w", err)
 	}
 
 	var repoConfig Config
-	err = v.Unmarshal(&repoConfig)
-	if err != nil {
-		cl.logger.Warn("Failed to unmarshal config file from repository, using default config", "error", err)
-		return nil, fmt.Errorf("failed to unmarshal config: %w", err)
+	if err = v.Unmarshal(&repoConfig); err != nil {
+		cl.logger.Warn("Failed to unmarshal .mr-conform.yaml, using default config", "error", err)
+		return nil, ConfigNotFound, fmt.Errorf("failed to unmarshal config: %w", err)
 	}
 
 	cl.logger.Debug("Successfully loaded config from repository")
-	return &repoConfig.Rules, nil
-}
-
-// selectConfig returns repository config if available, otherwise default config
-func (cl *ConfigLoader) selectConfig(repoConfig *RulesConfig) RulesConfig {
-	if repoConfig != nil {
-		cl.logger.Debug("Using repository configuration")
-		return *repoConfig
-	}
-
-	cl.logger.Info("Using default configuration")
-	return cl.defaultConfig
+	return &repoConfig.Rules, ConfigPopulated, nil
 }
