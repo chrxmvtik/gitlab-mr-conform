@@ -52,6 +52,12 @@ spec:
                   name: {{ include "gitlab-mr-conform.secretName" $ }}
                   key: webhook-secret
                   optional: true
+            - name: GITLAB_MR_BOT_GITLAB_SYSTEM_HOOK_SECRET_TOKEN
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "gitlab-mr-conform.secretName" $ }}
+                  key: system-hook-secret
+                  optional: true
             - name: GITLAB_MR_BOT_QUEUE_REDIS_PASSWORD
               valueFrom:
                 secretKeyRef:

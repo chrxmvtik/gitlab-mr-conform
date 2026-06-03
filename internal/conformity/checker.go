@@ -7,6 +7,7 @@ import (
 	"sort"
 	"strings"
 
+	"gitlab-mr-conformity-bot/internal/cache"
 	"gitlab-mr-conformity-bot/internal/config"
 	"gitlab-mr-conformity-bot/internal/conformity/helper/codeowners"
 	"gitlab-mr-conformity-bot/internal/conformity/helper/common"
@@ -40,8 +41,12 @@ type RuleFailure struct {
 }
 
 func NewChecker(defaultConfig config.RulesConfig, client *gitlab.Client, log *logger.Logger, integrations config.IntegrationsConfig) *Checker {
+	return NewCheckerWithCache(defaultConfig, client, log, integrations, nil)
+}
+
+func NewCheckerWithCache(defaultConfig config.RulesConfig, client *gitlab.Client, log *logger.Logger, integrations config.IntegrationsConfig, c cache.Cache) *Checker {
 	return &Checker{
-		configLoader:     config.NewConfigLoader(defaultConfig, client, log),
+		configLoader:     config.NewConfigLoaderWithCache(defaultConfig, client, log, c),
 		ruleBuilder:      NewRuleBuilder(integrations),
 		summaryGenerator: NewSummaryGenerator(),
 		gitlabClient:     client,
@@ -50,49 +55,37 @@ func NewChecker(defaultConfig config.RulesConfig, client *gitlab.Client, log *lo
 }
 
 func (c *Checker) CheckMergeRequest(projectID interface{}, mrID int) (*CheckResult, error) {
-	// Load configuration (repository or default)
 	finalConfig, presence, err := c.configLoader.LoadConfig(projectID)
 	if err != nil {
 		return nil, fmt.Errorf("failed to load configuration: %w", err)
 	}
 
-	// No .mr-conform.yaml present: skip this repository entirely.
 	if presence == config.ConfigNotFound {
 		c.logger.Info("Skipping repository: no .mr-conform.yaml found", "project_id", projectID)
 		return &CheckResult{Skipped: true}, nil
 	}
 
-	// Build rules based on configuration
 	rulesList := c.ruleBuilder.BuildRules(finalConfig)
-
-	// Get merge request and commits
 	mr, commits, approvals, err := c.fetchMergeRequestData(projectID, mrID, finalConfig)
 	if err != nil {
 		return nil, err
 	}
 
 	var co []*codeowners.PatternGroup
-
 	var members []*gitlabapi.ProjectMember
 
 	if finalConfig.Approvals.UseCodeowners {
-		// Get project members
 		members, err = c.gitlabClient.ListProjectMembers(projectID)
 		if err != nil {
 			c.logger.Info("Failed to list project members", "error", err)
 		}
-		// Get CODEOWNERS file from repository
 		co, err = c.getCodeowners(projectID, mrID, members)
 		if err != nil {
 			c.logger.Info("No CODEOWNERS file found in repository, skipping", "error", err)
 		}
-
 	}
 
-	// Execute rule checks
 	failures := c.executeRuleChecks(rulesList, mr, commits, approvals, co, members)
-
-	// Generate results
 	passed := len(failures) == 0
 	summary := c.summaryGenerator.GenerateSummary(failures)
 
@@ -103,20 +96,17 @@ func (c *Checker) CheckMergeRequest(projectID interface{}, mrID int) (*CheckResu
 	}, nil
 }
 
-// fetchMergeRequestData retrieves merge request and commit data
 func (c *Checker) fetchMergeRequestData(projectID interface{}, mrID int, finalConfig config.RulesConfig) (*gitlabapi.MergeRequest, []*gitlabapi.Commit, *common.Approvals, error) {
-	// Get merge request details
 	mr, err := c.gitlabClient.GetMergeRequest(projectID, mrID)
 	if err != nil {
 		return nil, nil, nil, fmt.Errorf("failed to get merge request: %w", err)
 	}
-	// Get mr approvers
+
 	approvals, err := c.gitlabClient.ListMergeRequestApprovals(projectID, mrID, mr.Author.ID, finalConfig.Approvals.ExcludeCreatorFromCount)
 	if err != nil {
 		return nil, nil, nil, fmt.Errorf("failed to get merge request: %w", err)
 	}
 
-	// Get commits for commit-related rules
 	commits, err := c.gitlabClient.ListMergeRequestCommits(projectID, mrID)
 	if err != nil {
 		return nil, nil, nil, fmt.Errorf("failed to get commits: %w", err)
@@ -125,7 +115,6 @@ func (c *Checker) fetchMergeRequestData(projectID interface{}, mrID int, finalCo
 	return mr, commits, approvals, nil
 }
 
-// executeRuleChecks runs all rules and collects failures
 func (c *Checker) executeRuleChecks(rulesList []rules.Rule, mr *gitlabapi.MergeRequest, commits []*gitlabapi.Commit, approvals *common.Approvals, codeowners []*codeowners.PatternGroup, members []*gitlabapi.ProjectMember) []RuleFailure {
 	var failures []RuleFailure
 
@@ -152,14 +141,12 @@ func (c *Checker) executeRuleChecks(rulesList []rules.Rule, mr *gitlabapi.MergeR
 }
 
 func (c *Checker) getCodeowners(projectID interface{}, mrID int, members []*gitlabapi.ProjectMember) ([]*codeowners.PatternGroup, error) {
-	// Try to get CODEOWNERS file from repository
 	co, err := c.gitlabClient.GetCodeownersFile(projectID)
 	if err != nil {
 		c.logger.Debug("No CODEOWNERS file found in repository, skipping", "error", err)
 		return nil, err
 	}
 
-	// Decode the base64 content
 	decoded, err := base64.StdEncoding.DecodeString(co.Content)
 	if err != nil {
 		c.logger.Warn("Failed to decode config file from repository, using default config", "error", err)
@@ -183,7 +170,6 @@ func (c *Checker) getCodeowners(projectID interface{}, mrID int, members []*gitl
 		log.Fatalf("Error obtaining diff paths: %v", err)
 	}
 
-	// Get only active patterns (final effective patterns)
 	coGrp := codeowners.GetActivePatternAggregation(cos, paths)
 	var sortedGroups []*codeowners.PatternGroup
 	for _, pg := range coGrp.PatternGroups {

@@ -9,22 +9,19 @@ import (
 	"syscall"
 	"time"
 
+	"gitlab-mr-conformity-bot/internal/cache"
 	"gitlab-mr-conformity-bot/internal/config"
 	"gitlab-mr-conformity-bot/internal/conformity"
 	"gitlab-mr-conformity-bot/internal/gitlab"
 	"gitlab-mr-conformity-bot/internal/queue"
 	"gitlab-mr-conformity-bot/internal/server"
-	"gitlab-mr-conformity-bot/internal/storage"
 	"gitlab-mr-conformity-bot/pkg/logger"
 )
 
 func main() {
-	// Initialize logger
 	log := logger.New()
-
 	log.Info("Starting bot", "version", Version)
 
-	// Load configuration
 	cfg, err := config.Load()
 	if err != nil {
 		log.Fatal("Failed to load configuration", "error", err)
@@ -32,7 +29,6 @@ func main() {
 
 	log.SetLevel(cfg.Server.LogLevel)
 
-	// Initialize Redis queue manager
 	queueConfig := &queue.Config{
 		RedisHost:          cfg.Queue.Redis.Host,
 		RedisPassword:      cfg.Queue.Redis.Password,
@@ -40,42 +36,42 @@ func main() {
 		QueuePrefix:        "gitlab:mr:queue",
 		LockPrefix:         "gitlab:mr:lock",
 		ProcessingPrefix:   "gitlab:mr:processing",
-		DefaultLockTTL:     cfg.Queue.Queue.LockTTL,            //10 * time.Second,
-		MaxRetries:         cfg.Queue.Queue.MaxRetries,         //3,
-		ProcessingInterval: cfg.Queue.Queue.ProcessingInterval, // 100 * time.Milisecond,
+		DefaultLockTTL:     cfg.Queue.Queue.LockTTL,
+		MaxRetries:         cfg.Queue.Queue.MaxRetries,
+		ProcessingInterval: cfg.Queue.Queue.ProcessingInterval,
+		WorkerPoolSize:     cfg.Queue.Queue.WorkerPoolSize,
 	}
-
 	queueManager := queue.NewQueueManager(queueConfig, log)
 
-	// Initialize GitLab client
-	gitlabClient, err := gitlab.NewClient(cfg.GitLab.Token, cfg.GitLab.BaseURL, cfg.GitLab.Insecure)
+	var appCache cache.Cache
+	if cfg.Queue.Enabled {
+		appCache = cache.NewTieredCache(
+			cache.NewMemoryCache(),
+			cache.NewRedisCache(cfg.Queue.Redis.Host, cfg.Queue.Redis.Password, cfg.Queue.Redis.DB),
+		)
+	} else {
+		appCache = cache.NewMemoryCache()
+	}
+
+	gitlabClient, err := gitlab.NewClientWithCache(cfg.GitLab.Token, cfg.GitLab.BaseURL, cfg.GitLab.Insecure, appCache)
 	if err != nil {
 		log.Fatal("Failed to create GitLab client", "error", err)
 	}
 
 	log.Info("Connected to GitLab server", "server", cfg.GitLab.BaseURL)
 
-	// Initialize storage
-	store := storage.NewMemoryStorage()
+	checker := conformity.NewCheckerWithCache(cfg.Rules, gitlabClient, log, cfg.Integrations, appCache)
+	srv := server.NewServer(cfg, gitlabClient, checker, nil, log, queueManager)
 
-	// Initialize conformity checker
-	checker := conformity.NewChecker(cfg.Rules, gitlabClient, log, cfg.Integrations)
-
-	// Initialize HTTP server
-	srv := server.NewServer(cfg, gitlabClient, checker, store, log, queueManager)
-
-	// Create context for graceful shutdown
 	c, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
-	// Start the background job processor only if queue is enabled
 	if cfg.Queue.Enabled {
 		go srv.StartProcessor(c)
 	} else {
 		log.Info("Queue processing disabled, webhooks will be processed synchronously")
 	}
 
-	// Start server
 	httpServer := &http.Server{
 		Addr:    fmt.Sprintf(":%d", cfg.Server.Port),
 		Handler: srv.Router(),
@@ -88,13 +84,11 @@ func main() {
 		}
 	}()
 
-	// Wait for interrupt signal
 	quit := make(chan os.Signal, 1)
 	signal.Notify(quit, syscall.SIGINT, syscall.SIGTERM)
 	<-quit
 	log.Info("Shutting down server...")
 
-	// Graceful shutdown
 	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
 	defer cancel()
 
