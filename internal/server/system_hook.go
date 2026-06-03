@@ -2,6 +2,7 @@ package server
 
 import (
 	"context"
+	"encoding/json"
 	"io"
 	"net/http"
 	"strconv"
@@ -10,10 +11,37 @@ import (
 	gitlabapi "gitlab.com/gitlab-org/api/client-go"
 )
 
+// systemHookObjectKind is a minimal struct used to peek at the object_kind field
+// of a GitLab system hook payload without performing a full JSON parse.
+type systemHookObjectKind struct {
+	ObjectKind string `json:"object_kind"`
+}
+
+// peekObjectKind extracts only the top-level "object_kind" field from a raw JSON
+// system hook payload. It is intentionally lightweight to allow early discard of
+// non-relevant events before the more expensive full parse.
+func peekObjectKind(data []byte) (string, error) {
+	var envelope systemHookObjectKind
+	if err := json.Unmarshal(data, &envelope); err != nil {
+		return "", err
+	}
+	return envelope.ObjectKind, nil
+}
+
 // handleSystemHookNoQueue processes incoming GitLab system hook events directly (no queue).
 func (s *Server) handleSystemHookNoQueue(c *gin.Context) {
 	payload, ok := s.readSystemHookPayload(c)
 	if !ok {
+		return
+	}
+
+	// Early discard: peek at object_kind before the more expensive full parse.
+	// For large GitLab instances with thousands of repos, repository_update, push,
+	// tag_push and other non-MR events arrive at high frequency and would otherwise
+	// all incur a full JSON unmarshal.
+	if objectKind, err := peekObjectKind(payload); err == nil && objectKind != "merge_request" {
+		s.logger.Debug("System hook event discarded early (not a merge request)", "object_kind", objectKind)
+		c.JSON(http.StatusOK, gin.H{"message": "Event ignored (not a merge request)"})
 		return
 	}
 
@@ -33,7 +61,6 @@ func (s *Server) handleSystemHookNoQueue(c *gin.Context) {
 	}
 
 	s.logger.Debug("System hook parsed",
-		"object_kind", mergeEvent.ObjectKind,
 		"event_type", mergeEvent.EventType,
 		"target_project_id", mergeEvent.ObjectAttributes.TargetProjectID,
 		"source_project_id", mergeEvent.ObjectAttributes.SourceProjectID,
@@ -117,6 +144,14 @@ func (s *Server) handleSystemHookNoQueue(c *gin.Context) {
 func (s *Server) HandleSystemHook(c *gin.Context) {
 	payload, ok := s.readSystemHookPayload(c)
 	if !ok {
+		return
+	}
+
+	// Early discard: same optimisation as handleSystemHookNoQueue — avoid a full
+	// JSON parse for the high-volume non-MR events before they ever reach the queue.
+	if objectKind, err := peekObjectKind(payload); err == nil && objectKind != "merge_request" {
+		s.logger.Debug("System hook event discarded early (not a merge request)", "object_kind", objectKind)
+		c.JSON(http.StatusOK, gin.H{"message": "Event ignored (not a merge request)"})
 		return
 	}
 

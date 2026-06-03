@@ -68,6 +68,22 @@ func pushSystemHookPayload() []byte {
 	return data
 }
 
+// repositoryUpdateSystemHookPayload returns a valid system hook repository_update payload.
+func repositoryUpdateSystemHookPayload() []byte {
+	payload := map[string]interface{}{
+		"object_kind": "repository_update",
+		"event_name":  "repository_update",
+		"user_id":     1,
+		"user_name":   "Test User",
+		"project_id":  1,
+		"changes": []map[string]interface{}{
+			{"before": "abc", "after": "def", "ref": "refs/heads/main"},
+		},
+	}
+	data, _ := json.Marshal(payload)
+	return data
+}
+
 // newTestServerWithMockGitLab creates a Server backed by a real gitlab.Client pointed at
 // a mock GitLab HTTP server. It returns the Server and a teardown function.
 //
@@ -448,5 +464,112 @@ func TestHandleSystemHookNoQueue_EmptyConfigFile_UsesDefaults(t *testing.T) {
 	}
 	if resp["message"] != "Processed successfully" {
 		t.Errorf("expected 'Processed successfully', got: %v", resp["message"])
+	}
+}
+
+// ---------------------------------------------------------------------------
+// Tests for peekObjectKind and early-discard optimisation
+// ---------------------------------------------------------------------------
+
+func TestPeekObjectKind(t *testing.T) {
+	tests := []struct {
+		name     string
+		input    []byte
+		wantKind string
+		wantErr  bool
+	}{
+		{
+			name:     "merge_request event",
+			input:    []byte(`{"object_kind":"merge_request","event_type":"merge_request"}`),
+			wantKind: "merge_request",
+		},
+		{
+			name:     "push event",
+			input:    []byte(`{"object_kind":"push","event_name":"push","project_id":1}`),
+			wantKind: "push",
+		},
+		{
+			name:     "repository_update event",
+			input:    []byte(`{"object_kind":"repository_update","event_name":"repository_update"}`),
+			wantKind: "repository_update",
+		},
+		{
+			name:     "tag_push event",
+			input:    []byte(`{"object_kind":"tag_push","event_name":"tag_push"}`),
+			wantKind: "tag_push",
+		},
+		{
+			name:     "empty object_kind",
+			input:    []byte(`{"event_name":"something"}`),
+			wantKind: "",
+		},
+		{
+			name:    "invalid JSON",
+			input:   []byte(`not valid json`),
+			wantErr: true,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got, err := peekObjectKind(tt.input)
+			if (err != nil) != tt.wantErr {
+				t.Errorf("peekObjectKind() error = %v, wantErr %v", err, tt.wantErr)
+				return
+			}
+			if !tt.wantErr && got != tt.wantKind {
+				t.Errorf("peekObjectKind() = %q, want %q", got, tt.wantKind)
+			}
+		})
+	}
+}
+
+// TestHandleSystemHookNoQueue_RepositoryUpdateDiscardedEarly verifies that a
+// repository_update event is rejected before the full GitLab parse and returns 200.
+func TestHandleSystemHookNoQueue_RepositoryUpdateDiscardedEarly(t *testing.T) {
+	cfg := &config.Config{}
+	srv, teardown := newTestServerWithMockGitLab(t, cfg, nil)
+	defer teardown()
+
+	payload := repositoryUpdateSystemHookPayload()
+	req := newTestRequest(payload, "")
+
+	w := invokeHandler(srv, req)
+
+	if w.Code != http.StatusOK {
+		t.Errorf("expected 200, got %d", w.Code)
+	}
+
+	var resp map[string]interface{}
+	if err := json.NewDecoder(w.Body).Decode(&resp); err != nil {
+		t.Fatalf("failed to decode response: %v", err)
+	}
+	if resp["message"] != "Event ignored (not a merge request)" {
+		t.Errorf("unexpected message: %v", resp["message"])
+	}
+}
+
+// TestHandleSystemHookNoQueue_PushEventDiscardedEarly verifies that a push event
+// is discarded early (before full parse) and returns 200.
+func TestHandleSystemHookNoQueue_PushEventDiscardedEarly(t *testing.T) {
+	cfg := &config.Config{}
+	srv, teardown := newTestServerWithMockGitLab(t, cfg, nil)
+	defer teardown()
+
+	payload := pushSystemHookPayload()
+	req := newTestRequest(payload, "")
+
+	w := invokeHandler(srv, req)
+
+	if w.Code != http.StatusOK {
+		t.Errorf("expected 200, got %d", w.Code)
+	}
+
+	var resp map[string]interface{}
+	if err := json.NewDecoder(w.Body).Decode(&resp); err != nil {
+		t.Fatalf("failed to decode response: %v", err)
+	}
+	if resp["message"] != "Event ignored (not a merge request)" {
+		t.Errorf("unexpected message: %v", resp["message"])
 	}
 }

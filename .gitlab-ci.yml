@@ -1,3 +1,6 @@
+variables:
+  IMAGE_TAG: "0.5.4"
+
 include:
   - project: "dev/commun/templates"
     ref: 'v3'
@@ -7,9 +10,32 @@ include:
       - "templates/trivy-scan-image.yml"
 
 stages:
+  - test
   - docker-build-save
   - trivy-scan-image
   - docker-build-push
+
+# ---
+
+test:
+  stage: test
+  when: manual
+  allow_failure: true
+  image: neufhs-docker-stages.${REPOSITOI_LOCAL_ZONE_HOSTNAME}/golang:1.26.3-enedis-1
+  variables:
+    GOPROXY: "https://${REPOSITOI_LOCAL_ZONE_HOSTNAME}/artifactory/remote-go-proxy-golang"
+    GONOSUMDB: "*"
+  script:
+    - go test -v -coverprofile=coverage.out ./...
+    - go tool cover -func=coverage.out
+    - go tool cover -html=coverage.out -o coverage.html
+  coverage: '/total:\s+\(statements\)\s+(\d+\.?\d+)%/'
+  artifacts:
+    when: always
+    paths:
+      - coverage.out
+      - coverage.html
+    expire_in: 1 week
 
 # ---
 

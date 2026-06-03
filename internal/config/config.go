@@ -1,14 +1,19 @@
 package config
 
 import (
+	"context"
 	"encoding/base64"
+	"encoding/json"
 	"fmt"
-	"gitlab-mr-conformity-bot/internal/gitlab"
-	"gitlab-mr-conformity-bot/pkg/logger"
 	"strings"
 	"time"
 
+	"gitlab-mr-conformity-bot/internal/cache"
+	"gitlab-mr-conformity-bot/internal/gitlab"
+	"gitlab-mr-conformity-bot/pkg/logger"
+
 	"github.com/spf13/viper"
+	gitlabapi "gitlab.com/gitlab-org/api/client-go"
 )
 
 type Config struct {
@@ -19,11 +24,11 @@ type Config struct {
 	} `mapstructure:"server"`
 
 	GitLab struct {
-		Token                string `mapstructure:"token"`
-		BaseURL              string `mapstructure:"base_url"`
-		SecretToken          string `mapstructure:"secret_token"`
+		Token                 string `mapstructure:"token"`
+		BaseURL               string `mapstructure:"base_url"`
+		SecretToken           string `mapstructure:"secret_token"`
 		SystemHookSecretToken string `mapstructure:"system_hook_secret_token"`
-		Insecure             bool   `mapstructure:"insecure"`
+		Insecure              bool   `mapstructure:"insecure"`
 	} `mapstructure:"gitlab"`
 
 	Rules RulesConfig `mapstructure:"rules"`
@@ -33,33 +38,34 @@ type Config struct {
 	Integrations IntegrationsConfig `mapstructure:"integrations"`
 }
 
-// QueueConfig holds Redis queue configuration
+// QueueConfig holds Redis queue configuration.
 type QueueConfig struct {
 	Enabled bool          `mapstructure:"enabled"`
 	Redis   RedisConfig   `mapstructure:"redis"`
 	Queue   QueueSettings `mapstructure:"queue"`
 }
 
-// RedisConfig holds Redis connection settings
+// RedisConfig holds Redis connection settings.
 type RedisConfig struct {
 	Host     string `mapstructure:"host"`
 	Password string `mapstructure:"password"`
 	DB       int    `mapstructure:"db"`
 }
 
-// QueueSettings holds queue behavior settings
+// QueueSettings holds queue behavior settings.
 type QueueSettings struct {
 	ProcessingInterval time.Duration `mapstructure:"processing_interval"`
 	MaxRetries         int           `mapstructure:"max_retries"`
 	LockTTL            time.Duration `mapstructure:"lock_ttl"`
+	WorkerPoolSize     int           `mapstructure:"worker_pool_size"`
 }
 
-// Integrations settings
+// Integrations settings.
 type IntegrationsConfig struct {
 	Asana AsanaConfig `mapstructure:"asana"`
 }
 
-// AsanaConfig holds Asana integration settings
+// AsanaConfig holds Asana integration settings.
 type AsanaConfig struct {
 	APIToken string `mapstructure:"api_token"`
 }
@@ -145,11 +151,23 @@ const (
 	ConfigPopulated
 )
 
-// ConfigLoader handles loading and merging configurations
+const (
+	defaultConfigCacheTTL = 5 * time.Minute
+	defaultSkipCacheTTL   = time.Hour
+)
+
+type configFetcher interface {
+	GetConfigFile(projectID interface{}) (*gitlabapi.File, error)
+}
+
+// ConfigLoader handles loading and merging configurations.
 type ConfigLoader struct {
 	defaultConfig RulesConfig
-	gitlabClient  *gitlab.Client
+	gitlabClient  configFetcher
 	logger        *logger.Logger
+	cache         cache.Cache
+	configTTL     time.Duration
+	skipTTL       time.Duration
 }
 
 func Load() (*Config, error) {
@@ -158,23 +176,21 @@ func Load() (*Config, error) {
 	viper.AddConfigPath("./configs")
 	viper.AddConfigPath(".")
 
-	// Set defaults
 	viper.SetDefault("server.port", 8080)
 	viper.SetDefault("server.host", "0.0.0.0")
 	viper.SetDefault("server.log_level", "INFO")
 	viper.SetDefault("gitlab.base_url", "https://gitlab.com")
 	viper.SetDefault("gitlab.insecure", false)
-	// Queue
 	viper.SetDefault("queue.enabled", false)
 	viper.SetDefault("queue.queue.lock_ttl", "10s")
 	viper.SetDefault("queue.queue.max_retries", 3)
 	viper.SetDefault("queue.queue.processing_interval", "100ms")
+	viper.SetDefault("queue.queue.worker_pool_size", 10)
 
 	if err := viper.ReadInConfig(); err != nil {
 		return nil, err
 	}
 
-	// Environment variables
 	viper.SetEnvPrefix("GITLAB_MR_BOT")
 	viper.AutomaticEnv()
 
@@ -194,18 +210,50 @@ func Load() (*Config, error) {
 	return &config, nil
 }
 
-// NewConfigLoader creates a new configuration loader
+// NewConfigLoader creates a new configuration loader.
 func NewConfigLoader(defaultConfig RulesConfig, client *gitlab.Client, log *logger.Logger) *ConfigLoader {
+	return NewConfigLoaderWithCache(defaultConfig, client, log, nil)
+}
+
+func NewConfigLoaderWithCache(defaultConfig RulesConfig, client *gitlab.Client, log *logger.Logger, c cache.Cache) *ConfigLoader {
 	return &ConfigLoader{
 		defaultConfig: defaultConfig,
 		gitlabClient:  client,
 		logger:        log,
+		cache:         c,
+		configTTL:     defaultConfigCacheTTL,
+		skipTTL:       defaultSkipCacheTTL,
 	}
 }
 
 // LoadConfig loads configuration for a project, trying repository config first, then falling back to default.
 // It also returns a ConfigPresence value so callers can decide whether to process the repository at all.
 func (cl *ConfigLoader) LoadConfig(projectID interface{}) (RulesConfig, ConfigPresence, error) {
+	ctx := context.Background()
+
+	if cl.cache != nil {
+		if ok, err := cl.cache.Exists(ctx, cl.skipCacheKey(projectID)); err == nil && ok {
+			cl.logger.Debug("Skip cache hit for repository", "project_id", projectID)
+			return cl.defaultConfig, ConfigNotFound, nil
+		}
+
+		if data, ok, err := cl.cache.Get(ctx, cl.configCacheKey(projectID)); err == nil && ok {
+			if string(data) == "empty" {
+				cl.logger.Debug("Config cache hit for empty repository config", "project_id", projectID)
+				return cl.defaultConfig, ConfigEmpty, nil
+			}
+
+			var cached RulesConfig
+			if err := json.Unmarshal(data, &cached); err == nil {
+				cl.logger.Debug("Config cache hit for repository", "project_id", projectID)
+				return cached, ConfigPopulated, nil
+			}
+
+			cl.logger.Warn("Failed to decode cached repository config", "project_id", projectID)
+			_ = cl.cache.Delete(ctx, cl.configCacheKey(projectID))
+		}
+	}
+
 	repoConfig, presence, err := cl.loadRepositoryConfig(projectID)
 	if err != nil {
 		return cl.defaultConfig, ConfigNotFound, fmt.Errorf("failed to load repository config: %w", err)
@@ -214,12 +262,15 @@ func (cl *ConfigLoader) LoadConfig(projectID interface{}) (RulesConfig, ConfigPr
 	switch presence {
 	case ConfigNotFound:
 		cl.logger.Debug("No .mr-conform.yaml found, skipping repository")
+		cl.cacheSkipResult(ctx, projectID)
 		return cl.defaultConfig, ConfigNotFound, nil
 	case ConfigEmpty:
 		cl.logger.Info("Empty .mr-conform.yaml found, using default configuration")
+		cl.cacheEmptyConfig(ctx, projectID)
 		return cl.defaultConfig, ConfigEmpty, nil
 	default:
 		cl.logger.Debug("Using repository configuration from .mr-conform.yaml")
+		cl.cachePopulatedConfig(ctx, projectID, *repoConfig)
 		return *repoConfig, ConfigPopulated, nil
 	}
 }
@@ -235,20 +286,17 @@ func (cl *ConfigLoader) loadRepositoryConfig(projectID interface{}) (*RulesConfi
 		return nil, ConfigNotFound, nil
 	}
 
-	// Decode the base64 content
 	decoded, err := base64.StdEncoding.DecodeString(cfg.Content)
 	if err != nil {
 		cl.logger.Warn("Failed to decode .mr-conform.yaml, using default config", "error", err)
 		return nil, ConfigNotFound, fmt.Errorf("failed to decode config: %w", err)
 	}
 
-	// Empty file → use default config
 	if len(strings.TrimSpace(string(decoded))) == 0 {
 		cl.logger.Debug(".mr-conform.yaml is empty, using default configuration")
 		return nil, ConfigEmpty, nil
 	}
 
-	// Create a new viper instance to avoid global state conflicts
 	v := viper.New()
 	v.SetConfigType("yaml")
 
@@ -265,4 +313,43 @@ func (cl *ConfigLoader) loadRepositoryConfig(projectID interface{}) (*RulesConfi
 
 	cl.logger.Debug("Successfully loaded config from repository")
 	return &repoConfig.Rules, ConfigPopulated, nil
+}
+
+func (cl *ConfigLoader) skipCacheKey(projectID interface{}) string {
+	return fmt.Sprintf("gitlab:cache:skip:%v", projectID)
+}
+
+func (cl *ConfigLoader) configCacheKey(projectID interface{}) string {
+	return fmt.Sprintf("gitlab:cache:config:%v", projectID)
+}
+
+func (cl *ConfigLoader) cacheSkipResult(ctx context.Context, projectID interface{}) {
+	if cl.cache == nil {
+		return
+	}
+	_ = cl.cache.Delete(ctx, cl.configCacheKey(projectID))
+	_ = cl.cache.Set(ctx, cl.skipCacheKey(projectID), []byte("1"), cl.skipTTL)
+}
+
+func (cl *ConfigLoader) cacheEmptyConfig(ctx context.Context, projectID interface{}) {
+	if cl.cache == nil {
+		return
+	}
+	_ = cl.cache.Delete(ctx, cl.skipCacheKey(projectID))
+	_ = cl.cache.Set(ctx, cl.configCacheKey(projectID), []byte("empty"), cl.configTTL)
+}
+
+func (cl *ConfigLoader) cachePopulatedConfig(ctx context.Context, projectID interface{}, cfg RulesConfig) {
+	if cl.cache == nil {
+		return
+	}
+
+	data, err := json.Marshal(cfg)
+	if err != nil {
+		cl.logger.Warn("Failed to marshal repository config for cache", "project_id", projectID, "error", err)
+		return
+	}
+
+	_ = cl.cache.Delete(ctx, cl.skipCacheKey(projectID))
+	_ = cl.cache.Set(ctx, cl.configCacheKey(projectID), data, cl.configTTL)
 }

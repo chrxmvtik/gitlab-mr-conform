@@ -4,9 +4,11 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"gitlab-mr-conformity-bot/pkg/logger"
 	"strings"
+	"sync"
 	"time"
+
+	"gitlab-mr-conformity-bot/pkg/logger"
 
 	"github.com/go-redis/redis/v8"
 	"github.com/google/uuid"
@@ -14,39 +16,40 @@ import (
 	gitlabapi "gitlab.com/gitlab-org/api/client-go"
 )
 
-// WebhookJob represents a webhook job in the queue
+// WebhookJob represents a webhook job in the queue.
 type WebhookJob struct {
-	//Webhook         *gitlabapi.Event
-	ID              string //`json:"id"`
-	ProjectID       string //`json:"project_id"`
-	MergeRequestIID string //`json:"merge_request_iid"`
-	WebhookType     string //`json:"webhook_type"`
+	ID              string
+	ProjectID       string
+	MergeRequestIID string
+	WebhookType     string
 	Payload         *gitlabapi.MergeEvent
-	CreatedAt       int64 //`json:"created_at"`
-	Attempts        int   //`json:"attempts"`
-	MaxAttempts     int   //`json:"max_attempts"`
+	CreatedAt       int64
+	Attempts        int
+	MaxAttempts     int
 }
 
-// JobProcessor defines the interface for processing webhook jobs
+// JobProcessor defines the interface for processing webhook jobs.
 type JobProcessor interface {
 	ProcessJob(c context.Context, job *WebhookJob) error
 }
 
-// QueueManager manages Redis queues for GitLab MR webhooks
+// QueueManager manages Redis queues for GitLab MR webhooks.
 type QueueManager struct {
 	redis              *redis.Client
 	queuePrefix        string
 	lockPrefix         string
 	processingPrefix   string
+	activeQueuesKey    string
 	defaultLockTTL     time.Duration
 	maxRetries         int
 	processingInterval time.Duration
+	workerPoolSize     int
 	isProcessing       bool
 	stopChan           chan struct{}
 	log                *logger.Logger
 }
 
-// Config holds configuration for the queue manager
+// Config holds configuration for the queue manager.
 type Config struct {
 	RedisHost          string
 	RedisPassword      string
@@ -54,18 +57,28 @@ type Config struct {
 	QueuePrefix        string
 	LockPrefix         string
 	ProcessingPrefix   string
+	ActiveQueuesKey    string
 	DefaultLockTTL     time.Duration
 	MaxRetries         int
 	ProcessingInterval time.Duration
+	WorkerPoolSize     int
 }
 
-// NewQueueManager creates a new queue manager instance
+// NewRedisClient creates a Redis client configured for queue usage.
+func NewRedisClient(host, password string, db int) *redis.Client {
+	return redis.NewClient(&redis.Options{
+		Addr:     host,
+		Password: password,
+		DB:       db,
+	})
+}
+
+// NewQueueManager creates a new queue manager instance.
 func NewQueueManager(config *Config, log *logger.Logger) *QueueManager {
 	if config == nil {
 		config = &Config{}
 	}
 
-	// Set defaults
 	if config.QueuePrefix == "" {
 		config.QueuePrefix = "gitlab:mr:queue"
 	}
@@ -75,6 +88,9 @@ func NewQueueManager(config *Config, log *logger.Logger) *QueueManager {
 	if config.ProcessingPrefix == "" {
 		config.ProcessingPrefix = "gitlab:mr:processing"
 	}
+	if config.ActiveQueuesKey == "" {
+		config.ActiveQueuesKey = "gitlab:mr:active-queues"
+	}
 	if config.DefaultLockTTL == 0 {
 		config.DefaultLockTTL = 5 * time.Minute
 	}
@@ -82,29 +98,32 @@ func NewQueueManager(config *Config, log *logger.Logger) *QueueManager {
 		config.MaxRetries = 3
 	}
 	if config.ProcessingInterval == 0 {
-		config.ProcessingInterval = 1 * time.Second
+		config.ProcessingInterval = time.Second
+	}
+	if config.WorkerPoolSize == 0 {
+		config.WorkerPoolSize = 10
 	}
 
-	rdb := redis.NewClient(&redis.Options{
-		Addr:     config.RedisHost,
-		Password: config.RedisPassword,
-		DB:       config.RedisDB,
-	})
-
 	return &QueueManager{
-		redis:              rdb,
+		redis:              NewRedisClient(config.RedisHost, config.RedisPassword, config.RedisDB),
 		queuePrefix:        config.QueuePrefix,
 		lockPrefix:         config.LockPrefix,
 		processingPrefix:   config.ProcessingPrefix,
+		activeQueuesKey:    config.ActiveQueuesKey,
 		defaultLockTTL:     config.DefaultLockTTL,
 		maxRetries:         config.MaxRetries,
 		processingInterval: config.ProcessingInterval,
+		workerPoolSize:     config.WorkerPoolSize,
 		stopChan:           make(chan struct{}),
 		log:                log,
 	}
 }
 
-// EnqueueWebhook adds a webhook job to the queue for a specific MR
+func (qm *QueueManager) ActiveQueuesKey() string {
+	return qm.activeQueuesKey
+}
+
+// EnqueueWebhook adds a webhook job to the queue for a specific MR.
 func (qm *QueueManager) EnqueueWebhook(c context.Context, projectID, mergeRequestIID, webhookType string, payload *gitlabapi.MergeEvent) (string, error) {
 	jobID := uuid.New().String()
 	job := &WebhookJob{
@@ -124,27 +143,24 @@ func (qm *QueueManager) EnqueueWebhook(c context.Context, projectID, mergeReques
 	}
 
 	queueKey := qm.getQueueKey(projectID, mergeRequestIID)
-
-	// Add job to the MR-specific queue (LPUSH for FIFO with RPOP)
-	if err := qm.redis.LPush(c, queueKey, jobData).Err(); err != nil {
+	pipe := qm.redis.TxPipeline()
+	pipe.Del(c, queueKey)
+	pipe.LPush(c, queueKey, jobData)
+	pipe.SAdd(c, qm.activeQueuesKey, queueKey)
+	pipe.Expire(c, queueKey, 24*time.Hour)
+	if _, err := pipe.Exec(c); err != nil {
 		return "", fmt.Errorf("failed to enqueue job: %w", err)
-	}
-
-	// Set queue expiration (cleanup after 24 hours if not processed)
-	if err := qm.redis.Expire(c, queueKey, 24*time.Hour).Err(); err != nil {
-		qm.log.Warn("Failed to set queue expiration", "error", err)
 	}
 
 	qm.log.Info("Enqueued webhook job", "jobId", jobID, "projectId", projectID, "mrId", mergeRequestIID)
 	return jobID, nil
 }
 
-// ProcessMRQueue processes all queued jobs for a specific MR
+// ProcessMRQueue processes all queued jobs for a specific MR.
 func (qm *QueueManager) ProcessMRQueue(c context.Context, projectID, mergeRequestIID string, processor JobProcessor) error {
 	queueKey := qm.getQueueKey(projectID, mergeRequestIID)
 	lockKey := qm.getLockKey(projectID, mergeRequestIID)
 
-	// Try to acquire lock for this MR
 	locked, err := qm.acquireLock(c, lockKey)
 	if err != nil {
 		return fmt.Errorf("failed to acquire lock: %w", err)
@@ -160,24 +176,21 @@ func (qm *QueueManager) ProcessMRQueue(c context.Context, projectID, mergeReques
 		}
 	}()
 
-	// Process jobs one by one from the queue
 	for {
 		job, err := qm.dequeueJob(c, queueKey)
 		if err != nil {
 			return fmt.Errorf("failed to dequeue job: %w", err)
 		}
 		if job == nil {
-			break // No more jobs in queue
+			break
 		}
 
 		qm.log.Info("Processing job", "jobId", job.ID, "projectId", projectID, "mrId", mergeRequestIID)
 
-		// Mark job as processing
 		if err := qm.markJobAsProcessing(c, job); err != nil {
 			qm.log.Warn("Failed to mark job as processing", "jobId", job.ID, "projectId", projectID, "mrId", mergeRequestIID, "error", err)
 		}
 
-		// Execute the job
 		if err := processor.ProcessJob(c, job); err != nil {
 			qm.log.Error("Error processing job", "jobId", job.ID, "projectId", projectID, "mrId", mergeRequestIID, "error", err)
 			if err := qm.handleJobFailure(c, job, queueKey, err); err != nil {
@@ -185,17 +198,20 @@ func (qm *QueueManager) ProcessMRQueue(c context.Context, projectID, mergeReques
 			}
 		} else {
 			qm.log.Info("Successfully processed job", "jobId", job.ID, "projectId", projectID, "mrId", mergeRequestIID)
-			// Remove from processing set on success
 			if err := qm.removeJobFromProcessing(c, job); err != nil {
 				qm.log.Warn("Failed to remove job from processing", "jobId", job.ID, "projectId", projectID, "mrId", mergeRequestIID, "error", err)
 			}
 		}
 	}
 
+	if err := qm.cleanupActiveQueue(c, queueKey); err != nil {
+		qm.log.Warn("Failed to cleanup active queue", "key", queueKey, "error", err)
+	}
+
 	return nil
 }
 
-// StartProcessor starts the queue processor that continuously processes jobs
+// StartProcessor starts the queue processor that continuously processes jobs.
 func (qm *QueueManager) StartProcessor(c context.Context, processor JobProcessor) {
 	if qm.isProcessing {
 		qm.log.Info("Queue processor is already running")
@@ -229,7 +245,7 @@ func (qm *QueueManager) StartProcessor(c context.Context, processor JobProcessor
 	}()
 }
 
-// StopProcessor stops the queue processor
+// StopProcessor stops the queue processor.
 func (qm *QueueManager) StopProcessor() {
 	if !qm.isProcessing {
 		return
@@ -239,54 +255,61 @@ func (qm *QueueManager) StopProcessor() {
 	close(qm.stopChan)
 }
 
-// GetQueueStats returns statistics about the queues
+// ProcessAllQueues processes every active MR queue.
+func (qm *QueueManager) ProcessAllQueues(c context.Context, processor JobProcessor) error {
+	return qm.processAllQueues(c, processor)
+}
+
+// GetQueueStats returns statistics about the queues.
 func (qm *QueueManager) GetQueueStats(c context.Context) (*QueueStats, error) {
-	queueKeys, err := qm.redis.Keys(c, qm.queuePrefix+":*").Result()
+	queueKeys, err := qm.scanActiveQueues(c)
 	if err != nil {
-		return nil, fmt.Errorf("failed to get queue keys: %w", err)
+		return nil, fmt.Errorf("failed to get active queue keys: %w", err)
 	}
 
-	processingKeys, err := qm.redis.Keys(c, qm.processingPrefix+":*").Result()
+	processingKeys, err := qm.scanKeys(c, qm.processingPrefix+":*")
 	if err != nil {
 		return nil, fmt.Errorf("failed to get processing keys: %w", err)
 	}
 
 	var totalJobs int64
-	var queueDetails []QueueDetail
+	queueDetails := make([]QueueDetail, 0, len(queueKeys))
+	totalQueues := 0
 
 	for _, queueKey := range queueKeys {
-		parts := strings.Split(queueKey, ":")
-		if len(parts) >= 5 {
-			projectID := parts[3]
-			mergeRequestIID := parts[4]
-
-			jobCount, err := qm.redis.LLen(c, queueKey).Result()
-			if err != nil {
-				qm.log.Warn("Failed to get queue length", "key", queueKey, "error", err)
-				continue
-			}
-
-			totalJobs += jobCount
-
-			if jobCount > 0 {
-				queueDetails = append(queueDetails, QueueDetail{
-					ProjectID:       projectID,
-					MergeRequestIID: mergeRequestIID,
-					JobCount:        int(jobCount),
-				})
-			}
+		projectID, mergeRequestIID, ok := qm.parseQueueKey(queueKey)
+		if !ok {
+			continue
 		}
+
+		jobCount, err := qm.redis.LLen(c, queueKey).Result()
+		if err != nil {
+			qm.log.Warn("Failed to get queue length", "key", queueKey, "error", err)
+			continue
+		}
+		if jobCount == 0 {
+			_ = qm.redis.SRem(c, qm.activeQueuesKey, queueKey).Err()
+			continue
+		}
+
+		totalQueues++
+		totalJobs += jobCount
+		queueDetails = append(queueDetails, QueueDetail{
+			ProjectID:       projectID,
+			MergeRequestIID: mergeRequestIID,
+			JobCount:        int(jobCount),
+		})
 	}
 
 	return &QueueStats{
-		TotalQueues:    len(queueKeys),
+		TotalQueues:    totalQueues,
 		TotalJobs:      int(totalJobs),
 		ProcessingJobs: len(processingKeys),
 		QueueDetails:   queueDetails,
 	}, nil
 }
 
-// QueueStats represents queue statistics
+// QueueStats represents queue statistics.
 type QueueStats struct {
 	TotalQueues    int           `json:"total_queues"`
 	TotalJobs      int           `json:"total_jobs"`
@@ -294,14 +317,14 @@ type QueueStats struct {
 	QueueDetails   []QueueDetail `json:"queue_details"`
 }
 
-// QueueDetail represents details about a specific queue
+// QueueDetail represents details about a specific queue.
 type QueueDetail struct {
 	ProjectID       string `json:"project_id"`
 	MergeRequestIID string `json:"merge_request_iid"`
 	JobCount        int    `json:"job_count"`
 }
 
-// ClearAllQueues clears all queues (useful for testing/debugging)
+// ClearAllQueues clears all queues (useful for testing/debugging).
 func (qm *QueueManager) ClearAllQueues(c context.Context) error {
 	patterns := []string{
 		qm.queuePrefix + ":*",
@@ -310,33 +333,35 @@ func (qm *QueueManager) ClearAllQueues(c context.Context) error {
 	}
 
 	for _, pattern := range patterns {
-		keys, err := qm.redis.Keys(c, pattern).Result()
+		keys, err := qm.scanKeys(c, pattern)
 		if err != nil {
 			return fmt.Errorf("failed to get keys for pattern %s: %w", pattern, err)
 		}
-
-		if len(keys) > 0 {
-			if err := qm.redis.Del(c, keys...).Err(); err != nil {
-				return fmt.Errorf("failed to delete keys: %w", err)
-			}
+		if len(keys) == 0 {
+			continue
 		}
+		if err := qm.redis.Del(c, keys...).Err(); err != nil {
+			return fmt.Errorf("failed to delete keys: %w", err)
+		}
+	}
+
+	if err := qm.redis.Del(c, qm.activeQueuesKey).Err(); err != nil {
+		return fmt.Errorf("failed to delete active queue index: %w", err)
 	}
 
 	return nil
 }
 
-// Close gracefully shuts down the queue manager
+// Close gracefully shuts down the queue manager.
 func (qm *QueueManager) Close() error {
 	qm.StopProcessor()
 	return qm.redis.Close()
 }
 
-// Health checks if the queue manager is healthy
+// Health checks if the queue manager is healthy.
 func (qm *QueueManager) Health(c context.Context) error {
 	return qm.redis.Ping(c).Err()
 }
-
-// Private helper methods
 
 func (qm *QueueManager) getQueueKey(projectID, mergeRequestIID string) string {
 	return fmt.Sprintf("%s:%s:%s", qm.queuePrefix, projectID, mergeRequestIID)
@@ -366,7 +391,7 @@ func (qm *QueueManager) dequeueJob(c context.Context, queueKey string) (*Webhook
 	jobData, err := qm.redis.RPop(c, queueKey).Result()
 	if err != nil {
 		if err == redis.Nil {
-			return nil, nil // No jobs in queue
+			return nil, nil
 		}
 		return nil, err
 	}
@@ -397,47 +422,139 @@ func (qm *QueueManager) handleJobFailure(c context.Context, job *WebhookJob, que
 	job.Attempts++
 
 	if job.Attempts < job.MaxAttempts {
-		// Requeue the job for retry
 		qm.log.Info("Retrying job", "jobId", job.ID, "projectId", job.ProjectID, "mrId", job.MergeRequestIID, "attempt", job.Attempts, "maxAttempts", job.MaxAttempts)
 		jobData, err := json.Marshal(job)
 		if err != nil {
 			return fmt.Errorf("failed to marshal job for retry: %w", err)
 		}
-		return qm.redis.LPush(c, queueKey, jobData).Err()
+
+		pipe := qm.redis.TxPipeline()
+		pipe.LPush(c, queueKey, jobData)
+		pipe.SAdd(c, qm.activeQueuesKey, queueKey)
+		pipe.Expire(c, queueKey, 24*time.Hour)
+		if _, err := pipe.Exec(c); err != nil {
+			return err
+		}
+		return nil
 	}
 
-	// Job has exceeded max attempts, log and remove from processing
-	//log.Printf("Job %s failed after %d attempts: %v", job.ID, job.MaxAttempts, jobErr)
 	qm.log.Info("Job failed after max attempts", "jobId", job.ID, "projectId", job.ProjectID, "mrId", job.MergeRequestIID, "maxAttempts", job.MaxAttempts, "error", jobErr)
 	return qm.removeJobFromProcessing(c, job)
 }
 
 func (qm *QueueManager) processAllQueues(c context.Context, processor JobProcessor) error {
-	queueKeys, err := qm.redis.Keys(c, qm.queuePrefix+":*").Result()
+	queueKeys, err := qm.scanActiveQueues(c)
 	if err != nil {
-		return fmt.Errorf("failed to get queue keys: %w", err)
+		return fmt.Errorf("failed to get active queue keys: %w", err)
 	}
 
-	for _, queueKey := range queueKeys {
-		parts := strings.Split(queueKey, ":")
-		if len(parts) >= 5 {
-			projectID := parts[3]
-			mergeRequestIID := parts[4]
-			// Check if there are jobs in this queue
-			queueLength, err := qm.redis.LLen(c, queueKey).Result()
-			if err != nil {
-				//log.Printf("Warning: failed to get queue length for %s: %v", queueKey, err)
-				qm.log.Warn("Failed to get queue length", "key", queueKey, "error", err)
-				continue
-			}
+	sem := make(chan struct{}, qm.workerPoolSize)
+	var wg sync.WaitGroup
+	var mu sync.Mutex
+	var firstErr error
 
-			if queueLength > 0 {
-				if err := qm.ProcessMRQueue(c, projectID, mergeRequestIID, processor); err != nil {
-					qm.log.Info("Error processing MR queue", "projectId", projectID, "mrId", mergeRequestIID, "error", err)
+	for _, queueKey := range queueKeys {
+		projectID, mergeRequestIID, ok := qm.parseQueueKey(queueKey)
+		if !ok {
+			continue
+		}
+
+		queueLength, err := qm.redis.LLen(c, queueKey).Result()
+		if err != nil {
+			qm.log.Warn("Failed to get queue length", "key", queueKey, "error", err)
+			continue
+		}
+		if queueLength == 0 {
+			_ = qm.redis.SRem(c, qm.activeQueuesKey, queueKey).Err()
+			continue
+		}
+
+		sem <- struct{}{}
+		wg.Add(1)
+
+		go func(projectID, mergeRequestIID string) {
+			defer wg.Done()
+			defer func() { <-sem }()
+
+			if err := qm.ProcessMRQueue(c, projectID, mergeRequestIID, processor); err != nil {
+				qm.log.Info("Error processing MR queue", "projectId", projectID, "mrId", mergeRequestIID, "error", err)
+				mu.Lock()
+				if firstErr == nil {
+					firstErr = err
 				}
+				mu.Unlock()
 			}
+		}(projectID, mergeRequestIID)
+	}
+
+	wg.Wait()
+	return firstErr
+}
+
+func (qm *QueueManager) cleanupActiveQueue(c context.Context, queueKey string) error {
+	queueLength, err := qm.redis.LLen(c, queueKey).Result()
+	if err != nil {
+		return err
+	}
+	if queueLength == 0 {
+		return qm.redis.SRem(c, qm.activeQueuesKey, queueKey).Err()
+	}
+	return nil
+}
+
+func (qm *QueueManager) scanActiveQueues(c context.Context) ([]string, error) {
+	var (
+		cursor uint64
+		keys   []string
+	)
+
+	for {
+		batch, next, err := qm.redis.SScan(c, qm.activeQueuesKey, cursor, "", 100).Result()
+		if err != nil {
+			return nil, err
+		}
+		keys = append(keys, batch...)
+		cursor = next
+		if cursor == 0 {
+			break
 		}
 	}
 
-	return nil
+	return keys, nil
+}
+
+func (qm *QueueManager) scanKeys(c context.Context, pattern string) ([]string, error) {
+	var (
+		cursor uint64
+		keys   []string
+	)
+
+	for {
+		batch, next, err := qm.redis.Scan(c, cursor, pattern, 100).Result()
+		if err != nil {
+			return nil, err
+		}
+		keys = append(keys, batch...)
+		cursor = next
+		if cursor == 0 {
+			break
+		}
+	}
+
+	return keys, nil
+}
+
+func (qm *QueueManager) parseQueueKey(queueKey string) (string, string, bool) {
+	prefix := qm.queuePrefix + ":"
+	if !strings.HasPrefix(queueKey, prefix) {
+		return "", "", false
+	}
+
+	remainder := strings.TrimPrefix(queueKey, prefix)
+	parts := strings.SplitN(remainder, ":", 2)
+	if len(parts) != 2 || parts[0] == "" || parts[1] == "" {
+		return "", "", false
+	}
+
+	return parts[0], parts[1], true
 }

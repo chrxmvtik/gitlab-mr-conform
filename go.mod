@@ -3,6 +3,7 @@ module gitlab-mr-conformity-bot
 go 1.25.9
 
 require (
+	github.com/alicebob/miniredis/v2 v2.38.0
 	github.com/bmatcuk/doublestar v1.3.4
 	github.com/bmatcuk/doublestar/v4 v4.9.1
 	github.com/gin-gonic/gin v1.10.1
@@ -45,6 +46,7 @@ require (
 	github.com/subosito/gotenv v1.6.0 // indirect
 	github.com/twitchyliquid64/golang-asm v0.15.1 // indirect
 	github.com/ugorji/go/codec v1.3.0 // indirect
+	github.com/yuin/gopher-lua v1.1.1 // indirect
 	go.uber.org/multierr v1.11.0 // indirect
 	golang.org/x/arch v0.18.0 // indirect
 	golang.org/x/crypto v0.39.0 // indirect
