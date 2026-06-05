@@ -72,6 +72,18 @@ func main() {
 		log.Info("Queue processing disabled, webhooks will be processed synchronously")
 	}
 
+	if cfg.Debug.PProfEnabled {
+		pprofPort := cfg.Debug.PProfPort
+		if pprofPort == 0 {
+			pprofPort = 6060
+		}
+		go func() {
+			if err := srv.StartDebugServer(pprofPort); err != nil {
+				log.Error("pprof debug server failed", "error", err)
+			}
+		}()
+	}
+
 	httpServer := &http.Server{
 		Addr:    fmt.Sprintf(":%d", cfg.Server.Port),
 		Handler: srv.Router(),
