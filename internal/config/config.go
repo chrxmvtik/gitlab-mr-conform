@@ -23,6 +23,17 @@ type Config struct {
 		LogLevel string `mapstructure:"log_level"`
 	} `mapstructure:"server"`
 
+	// Debug holds profiling/observability settings.
+	// Only enable in non-production environments.
+	Debug struct {
+		// PProfEnabled exposes /debug/pprof/* on PProfPort (default 6060).
+		// Set via env: DEBUG_PPROF_ENABLED=true
+		PProfEnabled bool `mapstructure:"pprof_enabled"`
+		// PProfPort is the port for the pprof HTTP server (default 6060).
+		// Set via env: DEBUG_PPROF_PORT=6060
+		PProfPort int `mapstructure:"pprof_port"`
+	} `mapstructure:"debug"`
+
 	GitLab struct {
 		Token                 string `mapstructure:"token"`
 		BaseURL               string `mapstructure:"base_url"`
@@ -179,6 +190,8 @@ func Load() (*Config, error) {
 	viper.SetDefault("server.port", 8080)
 	viper.SetDefault("server.host", "0.0.0.0")
 	viper.SetDefault("server.log_level", "INFO")
+	viper.SetDefault("debug.pprof_enabled", false)
+	viper.SetDefault("debug.pprof_port", 6060)
 	viper.SetDefault("gitlab.base_url", "https://gitlab.com")
 	viper.SetDefault("gitlab.insecure", false)
 	viper.SetDefault("queue.enabled", false)
@@ -199,6 +212,8 @@ func Load() (*Config, error) {
 	_ = viper.BindEnv("gitlab.base_url")
 	_ = viper.BindEnv("queue.redis.password")
 	_ = viper.BindEnv("integrations.asana.api_token")
+	_ = viper.BindEnv("debug.pprof_enabled", "DEBUG_PPROF_ENABLED")
+	_ = viper.BindEnv("debug.pprof_port", "DEBUG_PPROF_PORT")
 
 	viper.SetEnvKeyReplacer(strings.NewReplacer(".", "_"))
 
