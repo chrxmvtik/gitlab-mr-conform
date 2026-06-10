@@ -52,12 +52,6 @@ spec:
                   name: {{ include "gitlab-mr-conform.secretName" $ }}
                   key: webhook-secret
                   optional: true
-            - name: GITLAB_MR_BOT_GITLAB_SYSTEM_HOOK_SECRET_TOKEN
-              valueFrom:
-                secretKeyRef:
-                  name: {{ include "gitlab-mr-conform.secretName" $ }}
-                  key: system-hook-secret
-                  optional: true
             - name: GITLAB_MR_BOT_QUEUE_REDIS_PASSWORD
               valueFrom:
                 secretKeyRef:
@@ -84,7 +78,7 @@ spec:
           {{- end }}
           volumeMounts:
             - name: config
-              mountPath: /home/nonroot/configs/config.yaml
+              mountPath: /app/configs/config.yaml
               subPath: config.yaml
               readOnly: true
           {{- with .Values.livenessProbe }}

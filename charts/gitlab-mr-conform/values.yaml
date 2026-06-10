@@ -2,7 +2,7 @@
 replicaCount: 2
 
 image:
-  repository: neufhs-docker-stages.repositoi.zca.enedis.fr/gitlab-mr-conform
+  repository: ghcr.io/chrxmvtik/gitlab-mr-conform
   # tag: main
   pullPolicy: IfNotPresent
 
@@ -40,7 +40,7 @@ route:
     labels: {}
 
     hostnames:
-      - https://placide.enedis.fr/
+      - my-filter.example.com
     parentRefs:
       - name: my-gateway
         namespace: my-gateway
@@ -53,7 +53,7 @@ route:
     matches:
       - path:
           type: PathPrefix
-          value: /webhook/gitlab-mr-conform
+          value: /webhook
 
     ## Filters define the filters that are applied to requests that match this rule.
     filters: []
@@ -64,7 +64,7 @@ route:
 resources:
   limits:
     cpu: 500m
-    memory: 256Mi  # L1 in-memory cache is always active; bumped from 128Mi
+    memory: 128Mi
   requests:
     cpu: 250m
     memory: 64Mi
@@ -110,14 +110,14 @@ secret:
   # Set to false if you want to use an existing secret
   create: false
   # Name of the secret (if create is false, this should be the existing secret name)
-  # Keys expected: gitlab-token, webhook-secret, system-hook-secret, redis-password, asana-token.
+  # Keep in mind, that your own secret needs to match keys, which are:
+  # gitlab-token, webhook-secret and redis-password.
   name: ""
   # Secret data (base64 encoded values)
   data:
-    # Variables are optional; skip any that are not used.
+    # Variables are optional, so you can skip for example redisPassword, if not used.
     gitlabToken: "" # base64 encoded GitLab token
-    webhookSecret: "" # base64 encoded project webhook secret token
-    systemHookSecret: "" # base64 encoded system hook secret token
+    webhookSecret: "" # base64 encoded webhook secret
     redisPassword: "" # base64 encoded Redis password, if queue enabled
     asanaToken: "" # base64 encoded Asana API token, if Asana integration enabled
 
@@ -154,24 +154,19 @@ config:
     gitlab:
       # Note: GITLAB_MR_BOT_GITLAB_TOKEN and GITLAB_MR_BOT_GITLAB_SECRET_TOKEN
       # are set via environment variables from the secret
-      base_url: "https://placide.enedis.fr"
+      base_url: "https://gitlab.com"
       insecure: false # defaults to false if not specified
     queue:
-      # When enabled, Redis is used for job queuing AND as the L2 distributed cache.
-      # A single Redis instance serves both purposes (same host/password/db).
-      # NOTE: multiple replicas are safe — per-MR locks prevent double-processing.
       enabled: false
       redis:
         host: "<your-redis-or-valkey-host>:6379"
-        # Note: set using GITLAB_MR_BOT_QUEUE_REDIS_PASSWORD env variable
-        password: ""
-        db: 0
+        # Note: set using GITLAB_MR_BOT_QUEUE_REDIS_PASSWORD variable
+        password: "redispassword"
+        db: "0"
       queue:
         processing_interval: 100ms
         max_retries: 3
         lock_ttl: 10s
-        # Number of MR queues processed concurrently. Tune based on GitLab API rate limits.
-        worker_pool_size: 10
     rules:
       title:
         enabled: true

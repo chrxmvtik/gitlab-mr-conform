@@ -1,5 +1,5 @@
 ---
-version: '3.8'
+version: "3.8"
 
 services:
   # Redis/Valkey for queue management
@@ -35,7 +35,7 @@ services:
       - GITLAB_MR_BOT_GITLAB_TOKEN=${GITLAB_MR_BOT_GITLAB_TOKEN}
       - GITLAB_MR_BOT_GITLAB_SECRET_TOKEN=${GITLAB_MR_BOT_GITLAB_SECRET_TOKEN}
     volumes:
-      - ./config.yaml:/home/nonroot/configs/config.yaml:ro
+      - ./config.yaml:/app/configs/config.yaml:ro
       - ./logs:/app/logs
     restart: unless-stopped
     healthcheck:

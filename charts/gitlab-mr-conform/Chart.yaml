@@ -2,14 +2,12 @@ apiVersion: v2
 name: gitlab-mr-conform
 description: A Helm chart for GitLab MR Conform Bot
 type: application
-version: 0.5.3
-appVersion: 0.5.3
+version: 0.5.2
+appVersion: 0.5.2
 keywords:
   - gitlab
   - bot
   - merge-request
-home: https://placide.enedis.fr/dev/audes/placide/outillage/gitlab-mr-conform
+home: https://github.com/chrxmvtik/gitlab-mr-conform
 maintainers:
   - name: chrxmvtik
-  - name: Enedis
-    email: clement-externe.martel@enedis.fr

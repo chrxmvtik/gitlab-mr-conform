@@ -403,7 +403,7 @@ func matchesApprover(approver string, approval common.ApprovalInfo) bool {
 // common function to get approvals from summary
 func (s *CodeOwnersSummary) getApprovals() *common.Approvals {
 	approvals := &common.Approvals{
-		ApprovalsInfo: make(map[int]common.ApprovalInfo),
+		ApprovalsInfo: make(map[int64]common.ApprovalInfo),
 	}
 
 	// Collect all approvals from pattern summaries

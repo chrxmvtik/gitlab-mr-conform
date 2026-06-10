@@ -15,19 +15,18 @@ data:
       base_url: {{ .Values.config.data.gitlab.base_url | quote }}
       insecure: {{ .Values.config.data.gitlab.insecure }}
     {{- with .Values.config.data.queue }}
+    {{- if .enabled }}
     queue:
       enabled: {{ .enabled | default false }}
-      {{- if .enabled }}
       redis:
         host: {{ .redis.host | quote }}
         password: {{ .redis.password | quote }}
-        db: {{ .redis.db | default 0 }}
+        db: {{ .redis.database | quote }}
       queue:
         processing_interval: {{ .queue.processing_interval | default "100ms" | quote }}
         max_retries: {{ .queue.max_retries | default 3 }}
         lock_ttl: {{ .queue.lock_ttl | default "10s" | quote }}
-        worker_pool_size: {{ .queue.worker_pool_size | default 10 }}
-      {{- end }}
+    {{- end }}
     {{- end }}
     rules:
       title:
