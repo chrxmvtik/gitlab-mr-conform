@@ -19,10 +19,11 @@ type Config struct {
 	} `mapstructure:"server"`
 
 	GitLab struct {
-		Token       string `mapstructure:"token"`
-		BaseURL     string `mapstructure:"base_url"`
-		SecretToken string `mapstructure:"secret_token"`
-		Insecure    bool   `mapstructure:"insecure"`
+		Token                 string `mapstructure:"token"`
+		BaseURL               string `mapstructure:"base_url"`
+		SecretToken           string `mapstructure:"secret_token"`
+		SystemHookSecretToken string `mapstructure:"system_hook_secret_token"`
+		Insecure              bool   `mapstructure:"insecure"`
 	} `mapstructure:"gitlab"`
 
 	Rules RulesConfig `mapstructure:"rules"`
@@ -131,6 +132,18 @@ type AsanaValidatorConfig struct {
 	Keys              []string `mapstructure:"keys"`
 	ValidateExistence bool     `mapstructure:"validate_existence"`
 }
+
+// ConfigPresence describes whether a .mr-conform.yaml file was found in the repository.
+type ConfigPresence int
+
+const (
+	// ConfigNotFound means the file does not exist; the repo should be skipped entirely.
+	ConfigNotFound ConfigPresence = iota
+	// ConfigEmpty means the file exists but is empty or whitespace-only; use the global default config.
+	ConfigEmpty
+	// ConfigPopulated means the file exists and contains configuration; use the repository config.
+	ConfigPopulated
+)
 
 // ConfigLoader handles loading and merging configurations
 type ConfigLoader struct {
@@ -247,4 +260,48 @@ func (cl *ConfigLoader) selectConfig(repoConfig *RulesConfig) RulesConfig {
 
 	cl.logger.Info("Using default configuration")
 	return cl.defaultConfig
+}
+
+// LoadConfigWithPresence loads configuration for a project and returns the presence status.
+// This is used by system-hook to determine if a repository should be skipped.
+func (cl *ConfigLoader) LoadConfigWithPresence(projectID interface{}) (RulesConfig, ConfigPresence, error) {
+	// Try to get config file from repository
+	cfg, err := cl.gitlabClient.GetConfigFile(projectID)
+	if err != nil {
+		cl.logger.Debug("No config file found in repository", "error", err)
+		return cl.defaultConfig, ConfigNotFound, nil
+	}
+
+	// Decode the base64 content
+	decoded, err := base64.StdEncoding.DecodeString(cfg.Content)
+	if err != nil {
+		cl.logger.Warn("Failed to decode config file from repository, using default config", "error", err)
+		return cl.defaultConfig, ConfigEmpty, nil
+	}
+
+	// Check if file is empty or whitespace-only
+	if len(strings.TrimSpace(string(decoded))) == 0 {
+		cl.logger.Debug("Config file is empty, using default configuration")
+		return cl.defaultConfig, ConfigEmpty, nil
+	}
+
+	// Create a new viper instance to avoid global state conflicts
+	v := viper.New()
+	v.SetConfigType("yaml")
+
+	err = v.ReadConfig(strings.NewReader(string(decoded)))
+	if err != nil {
+		cl.logger.Warn("Failed to parse config file from repository, using default config", "error", err)
+		return cl.defaultConfig, ConfigEmpty, nil
+	}
+
+	var repoConfig Config
+	err = v.Unmarshal(&repoConfig)
+	if err != nil {
+		cl.logger.Warn("Failed to unmarshal config file from repository, using default config", "error", err)
+		return cl.defaultConfig, ConfigEmpty, nil
+	}
+
+	cl.logger.Debug("Successfully loaded config from repository")
+	return repoConfig.Rules, ConfigPopulated, nil
 }
