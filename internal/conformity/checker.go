@@ -27,6 +27,7 @@ type Checker struct {
 
 type CheckResult struct {
 	Passed   bool
+	Skipped  bool
 	Failures []RuleFailure
 	Summary  string
 }
@@ -142,6 +143,52 @@ func (c *Checker) executeRuleChecks(rulesList []rules.Rule, mr *gitlabapi.MergeR
 	}
 
 	return failures
+}
+
+// CheckMergeRequestForSystemHook checks a merge request and returns a skip status if config file is not found.
+// This is specifically for system-hook behavior where absence of config means "don't process this repo".
+func (c *Checker) CheckMergeRequestForSystemHook(projectID interface{}, mrID int) (*CheckResult, error) {
+	finalConfig, presence, err := c.configLoader.LoadConfigWithPresence(projectID)
+	if err != nil {
+		return nil, fmt.Errorf("failed to load configuration: %w", err)
+	}
+
+	// If config file doesn't exist, skip this repository for system-hook
+	if presence == config.ConfigNotFound {
+		c.logger.Info("Skipping repository: no .mr-conform.yaml found", "project_id", projectID)
+		return &CheckResult{Skipped: true}, nil
+	}
+
+	// If empty or populated, use the returned config (default or repo)
+	rulesList := c.ruleBuilder.BuildRules(finalConfig)
+	mr, commits, approvals, err := c.fetchMergeRequestData(projectID, int64(mrID), finalConfig)
+	if err != nil {
+		return nil, err
+	}
+
+	var co []*codeowners.PatternGroup
+	var members []*gitlabapi.ProjectMember
+
+	if finalConfig.Approvals.UseCodeowners {
+		members, err = c.gitlabClient.ListProjectMembers(projectID)
+		if err != nil {
+			c.logger.Info("Failed to list project members", "error", err)
+		}
+		co, err = c.getCodeowners(projectID, int64(mrID), members)
+		if err != nil {
+			c.logger.Info("No CODEOWNERS file found in repository, skipping", "error", err)
+		}
+	}
+
+	failures := c.executeRuleChecks(rulesList, mr, commits, approvals, co, members)
+	passed := len(failures) == 0
+	summary := c.summaryGenerator.GenerateSummary(failures)
+
+	return &CheckResult{
+		Passed:   passed,
+		Failures: failures,
+		Summary:  summary,
+	}, nil
 }
 
 func (c *Checker) getCodeowners(projectID interface{}, mrID int64, members []*gitlabapi.ProjectMember) ([]*codeowners.PatternGroup, error) {

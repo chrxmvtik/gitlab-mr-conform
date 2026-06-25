@@ -7,6 +7,7 @@ gitlab:
   # Set via environment variables:
   # GITLAB_MR_BOT_GITLAB_TOKEN
   # GITLAB_MR_BOT_GITLAB_SECRET_TOKEN
+  # GITLAB_MR_BOT_GITLAB_SYSTEM_HOOK_SECRET_TOKEN
   base_url: "https://gitlab.com"
 
 queue:

@@ -118,6 +118,7 @@ secret:
     # Variables are optional, so you can skip for example redisPassword, if not used.
     gitlabToken: "" # base64 encoded GitLab token
     webhookSecret: "" # base64 encoded webhook secret
+    systemHookSecret: "" # base64 encoded system hook secret token
     redisPassword: "" # base64 encoded Redis password, if queue enabled
     asanaToken: "" # base64 encoded Asana API token, if Asana integration enabled
 

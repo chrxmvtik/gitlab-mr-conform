@@ -46,8 +46,10 @@ func (s *Server) Router() *gin.Engine {
 
 	if s.config.Queue.Enabled {
 		router.POST("/webhook", s.HandleWebhook)
+		router.POST("/system-hook", s.HandleSystemHook)
 	} else {
 		router.POST("/webhook", s.handleWebhookNoQueue)
+		router.POST("/system-hook", s.handleSystemHookNoQueue)
 	}
 
 	// Status endpoint

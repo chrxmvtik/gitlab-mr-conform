@@ -106,9 +106,15 @@ integrations:
     api_token: ""
 ```
 
+>
 > [!TIP]
 > You can configure settings per project by adding a `.mr-conform.yaml` file to the root of the repository's default branch.
 > To define your settings, simply include a rules object in the file.
+> 
+> **For System Hook deployments:** The presence of this file determines whether a repository is processed:
+> - **No file** → Repository is skipped
+> - **Empty file** → Uses global default configuration
+> - **File with rules** → Uses repository-specific configuration
 
 #### Ticket System Integration
 
@@ -128,14 +134,83 @@ The tool supports both **Jira** and **Asana** for issue tracking validation:
 > [!NOTE]
 > When both Jira and Asana are configured, commits pass if they have a valid reference to **either** system.
 
-### 3. Setup GitLab Webhook
+### 3. Setup GitLab Integration
 
+GitLab MR Conform Checker offers two integration modes: **Project Webhooks** and **System Hooks**. Choose based on your deployment scope and GitLab token permissions.
+
+#### 🔌 Option A: Project Webhook (Recommended for Project-Level Deployment)
+
+**Use case:** Deploy per-project or per-group with a **PAT** (Personal Access Token) or **GAT** (Group Access Token).
+
+**Setup:**
 1. Navigate to your GitLab project → **Settings** → **Webhooks**
 2. Add webhook:
    - **URL:** `https://your-domain.com/webhook`
    - **Trigger:** Merge request events
    - **Secret Token:** Your webhook secret
-3. Start the service: `make run`
+3. Configure the environment:
+   ```bash
+   export GITLAB_MR_BOT_GITLAB_TOKEN="your_pat_or_gat"
+   export GITLAB_MR_BOT_GITLAB_SECRET_TOKEN="your_webhook_secret"
+   ```
+4. Start the service: `make run`
+
+**Behavior:**
+- ✅ **Always processes MRs** (even if `.mr-conform.yaml` is missing)
+- If `.mr-conform.yaml` exists in the repository → uses **repository configuration**
+- If `.mr-conform.yaml` is missing or invalid → uses **global default configuration**
+
+---
+
+#### ⚙️ Option B: System Hook (Recommended for Instance-Wide Deployment)
+
+**Use case:** Deploy at GitLab instance level with an **admin-level token** (PAT with admin scope or instance-wide access).
+
+**Setup:**
+1. Navigate to your GitLab instance → **Admin Area** → **System Hooks**
+2. Add system hook:
+   - **URL:** `https://your-domain.com/system-hook`
+   - **Trigger:** Merge request events
+   - **Secret Token:** Your system hook secret
+3. Configure the environment:
+   ```bash
+   export GITLAB_MR_BOT_GITLAB_TOKEN="your_admin_pat"
+   export GITLAB_MR_BOT_GITLAB_SYSTEM_HOOK_SECRET_TOKEN="your_system_hook_secret"
+   ```
+4. Start the service: `make run`
+
+**Behavior:**
+- 🔍 **Selective processing** based on repository configuration:
+  - ❌ If `.mr-conform.yaml` **does not exist** → **skips the repository** (no check performed)
+  - ✅ If `.mr-conform.yaml` **exists but is empty** → uses **global default configuration**
+  - ✅ If `.mr-conform.yaml` **exists and contains rules** → uses **repository configuration**
+
+**Why use System Hook?**
+- Centralized enforcement across **all projects** in the GitLab instance
+- Repositories **opt-in** by adding a `.mr-conform.yaml` file
+- Reduces noise: only processes projects that want conformity checks
+
+---
+
+#### 📊 Comparison Table
+
+| Feature | `/webhook` | `/system-hook` |
+|---------|------------|----------------|
+| **Scope** | Project or Group | GitLab Instance |
+| **Token Type** | PAT or GAT | Admin PAT |
+| **Configuration Location** | Project → Settings → Webhooks | Admin Area → System Hooks |
+| **Secret Token Env Var** | `GITLAB_SECRET_TOKEN` | `GITLAB_SYSTEM_HOOK_SECRET_TOKEN` |
+| **Missing `.mr-conform.yaml`** | Uses default config ✅ | Skips repository ❌ |
+| **Empty `.mr-conform.yaml`** | Uses default config ✅ | Uses default config ✅ |
+| **Populated `.mr-conform.yaml`** | Uses repo config ✅ | Uses repo config ✅ |
+| **Opt-in Model** | No (always active) | Yes (requires config file) |
+
+---
+
+> [!TIP]
+> **For GitLab SaaS (gitlab.com):** Use project webhooks with a PAT/GAT (admin access not available).
+> 
+> **For self-hosted GitLab:** Use system hooks for centralized, opt-in enforcement across all projects.
 
 ## Example Output
 
@@ -227,11 +302,12 @@ Deploy using our:
 
 ## 🔧 API Reference
 
-| Endpoint   | Method | Description                  |
-| ---------- | ------ | ---------------------------- |
-| `/webhook` | POST   | GitLab webhook receiver      |
-| `/health`  | GET    | Health check                 |
-| `/status`  | GET    | Merge request status checker |
+| Endpoint       | Method | Description                                          | Configuration File Behavior |
+| -------------- | ------ | ---------------------------------------------------- | --------------------------- |
+| `/webhook`     | POST   | GitLab project webhook receiver                      | Always processes; uses repo config if available, else default |
+| `/system-hook` | POST   | GitLab system hook receiver (instance-wide)          | Skips if config file absent; uses repo config or default if present |
+| `/health`      | GET    | Health check                                         | N/A |
+| `/status`      | GET    | Manual merge request conformity check                | Uses same logic as `/webhook` |
 
 ## 🧪 Development
 
