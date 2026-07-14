@@ -191,18 +191,68 @@ func (c *Client) CreateMergeRequestNote(projectID interface{}, mrID int64, note 
 	return nil
 }
 
+const commitStatusName = "MR Conform"
+
+// SetCommitStatus posts the conformity result as a commit status. GitLab
+// attaches a status posted without a pipeline ID to the newest pipeline for
+// the sha, so if another tool creates a pipeline between our "failed" and
+// "success" posts, the two land on different pipelines and the MR pipeline
+// stays red with no way to retry. To prevent that, any pipeline that already
+// carries one of our statuses gets the update; only the first post for a sha
+// lets GitLab pick the pipeline.
 func (c *Client) SetCommitStatus(projectID interface{}, sha, state, description string) error {
+	pipelineIDs, err := c.findCommitStatusPipelines(projectID, sha)
+	if err != nil {
+		return fmt.Errorf("failed to list commit statuses: %w", err)
+	}
+
 	opts := &gitlab.SetCommitStatusOptions{
 		State:       gitlab.BuildStateValue(state),
 		Description: &description,
-		Name:        gitlab.Ptr("MR Conform"),
+		Name:        gitlab.Ptr(commitStatusName),
 	}
 
-	_, _, err := c.client.Commits.SetCommitStatus(projectID, sha, opts)
-	if err != nil {
-		return fmt.Errorf("failed to set commit status: %w", err)
+	if len(pipelineIDs) == 0 {
+		if _, _, err := c.client.Commits.SetCommitStatus(projectID, sha, opts); err != nil {
+			return fmt.Errorf("failed to set commit status: %w", err)
+		}
+		return nil
+	}
+
+	for _, pipelineID := range pipelineIDs {
+		opts.PipelineID = gitlab.Ptr(pipelineID)
+		if _, _, err := c.client.Commits.SetCommitStatus(projectID, sha, opts); err != nil {
+			return fmt.Errorf("failed to set commit status on pipeline %d: %w", pipelineID, err)
+		}
 	}
 	return nil
+}
+
+func (c *Client) findCommitStatusPipelines(projectID interface{}, sha string) ([]int64, error) {
+	opt := &gitlab.GetCommitStatusesOptions{
+		Name:        gitlab.Ptr(commitStatusName),
+		ListOptions: gitlab.ListOptions{PerPage: 100},
+	}
+
+	var pipelineIDs []int64
+	seen := make(map[int64]bool)
+	for {
+		statuses, resp, err := c.client.Commits.GetCommitStatuses(projectID, sha, opt)
+		if err != nil {
+			return nil, err
+		}
+		for _, status := range statuses {
+			if status.PipelineID != 0 && !seen[status.PipelineID] {
+				seen[status.PipelineID] = true
+				pipelineIDs = append(pipelineIDs, status.PipelineID)
+			}
+		}
+		if resp.NextPage == 0 {
+			break
+		}
+		opt.Page = resp.NextPage
+	}
+	return pipelineIDs, nil
 }
 
 func (c *Client) GetConfigFile(projectID interface{}) (*gitlab.File, error) {
