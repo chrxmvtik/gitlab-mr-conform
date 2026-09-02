@@ -77,6 +77,7 @@ type TitleConfig struct {
 	MinLength      int                  `mapstructure:"min_length"`
 	MaxLength      int                  `mapstructure:"max_length"`
 	Conventional   ConventionalConfig   `mapstructure:"conventional"`
+	AllowedRegex   []string             `mapstructure:"allowed_regex"`
 	ForbiddenWords []string             `mapstructure:"forbidden_words"`
 	Jira           JiraConfig           `mapstructure:"jira"`
 	Asana          AsanaValidatorConfig `mapstructure:"asana"`

@@ -75,6 +75,8 @@ config:
             - "docs"
             - "style"
             - "refactor"
+        allowed_regex:
+          - '^Release/v\d+\.\d+\.\d+$'
       description:
         min_length: 30
         require_template: true
