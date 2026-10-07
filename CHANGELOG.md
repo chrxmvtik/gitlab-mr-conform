@@ -2,6 +2,29 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.6.0](https://github.com/chrxmvtik/gitlab-mr-conform/compare/v0.5.2..v0.6.0) - 2026-10-07
+
+### ⛰️  Features
+
+- [``9a788f5``](https://github.com/chrxmvtik/gitlab-mr-conform/commit/9a788f5e5c1610c1d61bdb270e7a370ad9ff6d57): support system hooks ([#89](https://github.com/chrxmvtik/gitlab-mr-conform/issues/89)) by @chrxmvtik in #89
+
+
+### 🐛 Bug Fixes
+
+- [``7ff7e9a``](https://github.com/chrxmvtik/gitlab-mr-conform/commit/7ff7e9aac86e847f891a190714dc816398ad6066): pin commit status updates to pipelines that  already carry one ([#83](https://github.com/chrxmvtik/gitlab-mr-conform/issues/83)) by @larubbio in #83
+
+
+### ⚙️ Miscellaneous Tasks
+
+- [``f2644e0``](https://github.com/chrxmvtik/gitlab-mr-conform/commit/f2644e021bf04c3a1f1cc733aeb3ffb2490f8a2d): change runner to ubuntu-latest in workflow ([#90](https://github.com/chrxmvtik/gitlab-mr-conform/issues/90)) by @chrxmvtik in #90
+
+
+
+
+
+**Full Changelog**: https://github.com/chrxmvtik/gitlab-mr-conform/compare/v0.5.2...v0.6.0
+
+
 ## [0.5.2](https://github.com/chrxmvtik/gitlab-mr-conform/compare/v0.5.1..v0.5.2) - 2026-05-16
 
 ### 🐛 Bug Fixes
