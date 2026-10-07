@@ -18,7 +18,7 @@ import (
 func (s *Server) HandleWebhook(c *gin.Context) {
 	wh := Webhook{
 		Secret:         s.config.GitLab.SecretToken,
-		EventsToAccept: []gitlabapi.EventType{gitlabapi.EventTypeMergeRequest, gitlabapi.EventTypeNote},
+		EventsToAccept: []gitlabapi.EventType{gitlabapi.EventTypeMergeRequest, gitlabapi.EventTypeNote, gitlabapi.EventTypeSystemHook},
 	}
 
 	// If we have a secret set, we should check if the request matches it.
@@ -53,8 +53,10 @@ func (s *Server) HandleWebhook(c *gin.Context) {
 	}
 
 	// Parse webhook event
-	parsedEvent, err := gitlabapi.ParseWebhook(eventType, payload)
+	parsedEvent, err := gitlabapi.ParseHook(eventType, payload)
 	if err != nil {
+		s.logger.Info("Event type", "event", eventType)
+		s.logger.Info("Allowed types", "types", wh.EventsToAccept)
 		s.logger.Error("Failed to parse webhook event", "error", err)
 		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid webhook payload"})
 		return
