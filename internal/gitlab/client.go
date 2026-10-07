@@ -231,6 +231,7 @@ func (c *Client) SetCommitStatus(projectID interface{}, sha, state, description 
 func (c *Client) findCommitStatusPipelines(projectID interface{}, sha string) ([]int64, error) {
 	opt := &gitlab.GetCommitStatusesOptions{
 		Name:        gitlab.Ptr(commitStatusName),
+		All:         gitlab.Ptr(true),
 		ListOptions: gitlab.ListOptions{PerPage: 100},
 	}
 
