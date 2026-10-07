@@ -62,6 +62,8 @@ rules:
     max_length: 100
     conventional:
       types: ["feat", "fix", "docs", "refactor", "release"]
+    # Alternative title formats. These bypass only Conventional Commit title validation.
+    # allowed_regex: ['^Release/v\d+\.\d+\.\d+$']
     jira:
       keys: ["PROJ", "JIRA"]
     asana:

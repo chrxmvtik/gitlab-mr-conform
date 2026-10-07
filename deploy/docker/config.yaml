@@ -35,6 +35,9 @@ rules:
         - "release"
       scopes:
         - ".*"
+    # Alternative title formats. Each entry is a Go regular expression.
+    # allowed_regex:
+    #   - '^Release/v\d+\.\d+\.\d+$'
     forbidden_words:
       - "WIP"
       - "TODO"

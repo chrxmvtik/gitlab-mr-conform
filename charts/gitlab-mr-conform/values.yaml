@@ -181,6 +181,7 @@ config:
             - "release"
           scopes:
             - ".*"
+        allowed_regex: []
         forbidden_words:
           - "WIP"
           - "TODO"

@@ -42,6 +42,7 @@ data:
             {{- range .Values.config.data.rules.title.conventional.scopes }}
             - {{ . | quote }}
             {{- end }}
+        allowed_regex: {{ .Values.config.data.rules.title.allowed_regex | toJson }}
         forbidden_words:
           {{- range .Values.config.data.rules.title.forbidden_words }}
           - {{ . | quote }}

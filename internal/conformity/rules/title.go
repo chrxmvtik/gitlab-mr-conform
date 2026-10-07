@@ -74,12 +74,25 @@ func (r *TitleRule) Check(mr *gitlabapi.MergeRequest, commits []*gitlabapi.Commi
 		}
 	}
 
+	// A configured allowed regex is an alternative to Conventional Commit format.
+	allowedByRegex := false
+	for _, pattern := range r.config.AllowedRegex {
+		re, err := regexp.Compile(pattern)
+		if err != nil {
+			return nil, fmt.Errorf("invalid title allowed_regex %q: %w", pattern, err)
+		}
+		if re.MatchString(title) {
+			allowedByRegex = true
+			break
+		}
+	}
+
 	// Conventional Commit Check
 	groups := common.ParseHeader(title)
-	if len(groups) != 7 {
+	if !allowedByRegex && len(groups) != 7 {
 		ruleResult.Error = append(ruleResult.Error, fmt.Sprintf("Invalid Conventional Commit format in title: %q", title))
 		ruleResult.Suggestion = append(ruleResult.Suggestion, "Use format:  \n> ```  \n> type(scope?): description  \n> ```\n> Example:  \n`feat(auth): add login retry mechanism`\n\n")
-	} else if len(groups) == 7 {
+	} else if !allowedByRegex && len(groups) == 7 {
 
 		ccType := groups[1]
 		ccScope := groups[3]
